@@ -1,0 +1,53 @@
+{
+ "cleaning_steps": [
+  [
+   "orders in the data",
+   568546
+  ],
+  [
+   "never accepted by a courier",
+   0
+  ],
+  [
+   "not delivered (no arrival time)",
+   -1
+  ],
+  [
+   "pre-booked orders (different promise logic)",
+   -22181
+  ],
+  [
+   "no meal-preparation estimate",
+   -7444
+  ],
+  [
+   "timestamps out of order",
+   -212
+  ],
+  [
+   "delivery time over 180 min",
+   -19
+  ],
+  [
+   "clean orders",
+   538689
+  ]
+ ],
+ "raw_waybills": 654343,
+ "utc_offset_hours": 8,
+ "dates": [
+  "2022-10-17",
+  "2022-10-24"
+ ],
+ "days": 8,
+ "districts": 23,
+ "merchants": 4928,
+ "couriers": 4880,
+ "late_pct": 14.55,
+ "late_over_5min_pct": 4.64,
+ "median_promise_min": 35.0,
+ "median_total_min": 27.8,
+ "redispatched_pct": 10.3,
+ "slow_merchant_cutoff_overrun_min": 4.41,
+ "slow_merchants": 220
+}

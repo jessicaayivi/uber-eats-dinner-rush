@@ -12,7 +12,7 @@ import sys
 import pandas as pd
 
 SQL_FILE = sys.argv[1] if len(sys.argv) > 1 else "sql/analysis.sql"
-DB_FILE = sys.argv[2] if len(sys.argv) > 2 else "data/doordash.db"
+DB_FILE = sys.argv[2] if len(sys.argv) > 2 else "data/meituan.db"
 OUT_DIR = "data/results"
 
 
