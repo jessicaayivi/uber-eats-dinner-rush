@@ -1,6 +1,7 @@
 """Clean the DoorDash delivery data and build the tables the analysis runs on.
 
 Input : data/raw/historical_data.csv  (Kaggle: dharun4772/doordash-eta-prediction; not committed)
+        data/india_summary.json       batching delay, from src/prepare_india.py (run that first)
 Output: data/doordash.db              SQLite: deliveries (one row per delivery) + the three tables below
         data/market_hour.csv          market x date x local hour: orders, late, delivery time, dashers
         data/market_hour_load.csv     the same, split by load-ratio bin (what the lever model uses)
@@ -30,6 +31,11 @@ MIN_MINUTES, MAX_MINUTES = 5, 180
 LATE_MINUTES = 60
 LOAD_BIN_WIDTH, LOAD_CAP = 0.1, 2.5   # bins of 0.1; everything at or above 2.5 shares one top bin
 FIRST_DAY, LAST_DAY = "2015-01-21", "2015-02-17"   # 28 full local days = 4 weeks
+
+
+def batching_delay_pct():
+    """Extra delivery time of a two-order trip, like-for-like, from the Indian data (run prepare_india.py first)."""
+    return json.load(open("data/india_summary.json"))["batching_delay_pct"]
 
 
 def load_raw():
@@ -71,12 +77,14 @@ def add_features(d):
     d["load_ratio"] = d.total_outstanding_orders / d.total_onshift_dashers
     d["load_bin"] = (np.minimum(d.load_ratio, LOAD_CAP) // LOAD_BIN_WIDTH * LOAD_BIN_WIDTH).round(1)
     d["is_late"] = (d.delivery_minutes > LATE_MINUTES).astype(int)
+    # Would this order be late if it were batched with a second one? (delay measured in prepare_india.py)
+    d["late_if_batched"] = (d.delivery_minutes * (1 + batching_delay_pct() / 100) > LATE_MINUTES).astype(int)
     d["basket_usd"] = d.subtotal / 100
     d["order_place_min"] = d.estimated_order_place_duration / 60
     d["drive_min"] = d.estimated_store_to_consumer_driving_duration / 60
     cols = ["market_id", "date", "dow", "hour", "store_id", "store_primary_category", "order_protocol",
             "basket_usd", "total_items", "total_onshift_dashers", "total_busy_dashers", "total_outstanding_orders",
-            "busy_ratio", "load_ratio", "load_bin", "order_place_min", "drive_min", "delivery_minutes", "is_late"]
+            "busy_ratio", "load_ratio", "load_bin", "order_place_min", "drive_min", "delivery_minutes", "is_late", "late_if_batched"]
     return d[cols]
 
 
@@ -94,6 +102,7 @@ def market_hour(d):
 def market_hour_load(d):
     g = d.groupby(["market_id", "date", "dow", "hour", "load_bin"])
     return g.agg(orders=("is_late", "size"), late=("is_late", "sum"),
+                 late_if_batched=("late_if_batched", "sum"),
                  minutes_sum=("delivery_minutes", "sum")).round(1).reset_index()
 
 

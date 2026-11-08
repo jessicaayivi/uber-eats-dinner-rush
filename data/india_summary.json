@@ -1,0 +1,14 @@
+{
+ "orders": 42655,
+ "avg_minutes_single_order": 23.1,
+ "batching_delay_min": 2.6,
+ "batching_delay_pct": 11.1,
+ "weather_category_sizes": {
+  "Fog": 7320,
+  "Stormy": 7201,
+  "Cloudy": 7191,
+  "Sandstorms": 7093,
+  "Windy": 7039,
+  "Sunny": 6811
+ }
+}

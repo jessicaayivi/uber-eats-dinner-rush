@@ -1,0 +1,13 @@
+factor,level,baseline,orders,avg_minutes,raw_diff_min,like_for_like_diff_min,like_for_like_diff_pct
+Weatherconditions,Cloudy,Sunny,7191,29.1,7.0,6.3,28.2
+Weatherconditions,Fog,Sunny,7320,29.2,7.0,6.2,28.2
+Weatherconditions,Sandstorms,Sunny,7093,26.1,4.0,3.8,17.2
+Weatherconditions,Stormy,Sunny,7201,26.1,4.0,3.8,17.1
+Weatherconditions,Windy,Sunny,7039,26.4,4.2,4.0,18.1
+Road_traffic_density,High,Low,4225,27.4,6.0,5.5,25.5
+Road_traffic_density,Jam,Low,13565,31.4,10.0,8.8,41.1
+Road_traffic_density,Medium,Low,10439,26.9,5.4,5.1,23.8
+Festival,Yes,No,859,45.5,19.3,13.4,51.1
+multiple_deliveries,1,0,27048,27.0,3.9,2.6,11.1
+multiple_deliveries,2,0,1927,40.5,17.4,10.8,46.7
+multiple_deliveries,3,0,350,47.8,24.7,13.8,59.5
