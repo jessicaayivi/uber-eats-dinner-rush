@@ -1,0 +1,243 @@
+{
+ "assumptions": {
+  "minutes_with_courier": {
+   "value": 25.09,
+   "source": "data",
+   "note": "Minutes an order spends with a courier, accept to delivery (calibrate.py, Meituan)"
+  },
+  "curve_a": {
+   "value": 0.10554,
+   "source": "data",
+   "note": "Late rate at load 1 (calibrate.py, Meituan)"
+  },
+  "curve_b": {
+   "value": 0.06518,
+   "source": "data",
+   "note": "Extra late rate per unit of ln(load): +4.5 points per doubling (calibrate.py, Meituan)"
+  },
+  "curve_floor": {
+   "value": 0.10744,
+   "source": "data",
+   "note": "Lowest late rate observed at low load (calibrate.py, Meituan)"
+  },
+  "rain_threshold_mm": {
+   "value": 0.2,
+   "source": "data",
+   "note": "An hour counts as rainy from 0.2 mm (Open-Meteo, Brussels, Sep-Oct 2026)"
+  },
+  "weekly_orders": {
+   "value": 30000,
+   "source": "assumption",
+   "note": "Orders a week on one platform in the Brussels-Capital Region"
+  },
+  "pickup_weight_food": {
+   "value": 0.7,
+   "source": "assumption",
+   "note": "Pickup share of a zone = 70% its share of food places + 30% its share of residents"
+  },
+  "rain_uplift": {
+   "value": 0.15,
+   "source": "assumption",
+   "note": "Extra orders in a rainy hour (couriers do not increase)"
+  },
+  "compliance": {
+   "value": 0.6,
+   "source": "assumption",
+   "note": "Share of recommended moves that couriers actually follow (positioning is a nudge)"
+  },
+  "staffing_scale": {
+   "value": 1.0,
+   "source": "assumption",
+   "note": "Couriers online relative to Meituan's staffing by hour (load 1.1-2.5)"
+  }
+ },
+ "headline": {
+  "friday_19_orders": 769,
+  "friday_19_couriers": 163,
+  "friday_19_late_drift": 127.9,
+  "friday_19_late_optimised": 115.4,
+  "friday_19_improvement_pct": 9.7,
+  "friday_19_realised_pct": 8.6,
+  "friday_19_vs_restaurant_rule_pct": 0.8,
+  "friday_19_couriers_moved": 43,
+  "friday_19_couriers_saved": 35,
+  "friday_19_rain_late_drift": 155.0,
+  "friday_19_rain_late_optimised": 140.8,
+  "friday_19_rain_improvement_pct": 9.1
+ },
+ "four_weeks_per_week": {
+  "orders": 29457.2,
+  "late_drift": 4983.7,
+  "late_optimised": 4458.3,
+  "late_realised": 4524.1
+ },
+ "four_weeks_reduction_full_pct": 10.5,
+ "four_weeks_reduction_realised_pct": 9.2,
+ "friday_19_moves": [
+  {
+   "source": "Molenbeek-Saint-Jean",
+   "to": "Brussels Pentagon",
+   "couriers": 7
+  },
+  {
+   "source": "Anderlecht",
+   "to": "Brussels Pentagon",
+   "couriers": 5
+  },
+  {
+   "source": "Uccle",
+   "to": "Brussels Pentagon",
+   "couriers": 4
+  },
+  {
+   "source": "Forest",
+   "to": "Brussels Pentagon",
+   "couriers": 3
+  },
+  {
+   "source": "Jette",
+   "to": "Brussels Pentagon",
+   "couriers": 3
+  },
+  {
+   "source": "Berchem-Sainte-Agathe",
+   "to": "Brussels Pentagon",
+   "couriers": 2
+  },
+  {
+   "source": "Evere",
+   "to": "Brussels Pentagon",
+   "couriers": 2
+  },
+  {
+   "source": "Ganshoren",
+   "to": "Brussels Pentagon",
+   "couriers": 1
+  },
+  {
+   "source": "Ganshoren",
+   "to": "Ixelles",
+   "couriers": 1
+  },
+  {
+   "source": "Haren",
+   "to": "Ixelles",
+   "couriers": 2
+  },
+  {
+   "source": "Laeken",
+   "to": "Ixelles",
+   "couriers": 2
+  },
+  {
+   "source": "Woluwe-Saint-Lambert",
+   "to": "Ixelles",
+   "couriers": 2
+  },
+  {
+   "source": "Woluwe-Saint-Pierre",
+   "to": "Ixelles",
+   "couriers": 1
+  },
+  {
+   "source": "Woluwe-Saint-Pierre",
+   "to": "Saint-Gilles",
+   "couriers": 1
+  },
+  {
+   "source": "Auderghem",
+   "to": "Saint-Gilles",
+   "couriers": 1
+  },
+  {
+   "source": "Brussels North",
+   "to": "Saint-Gilles",
+   "couriers": 1
+  },
+  {
+   "source": "Koekelberg",
+   "to": "Saint-Gilles",
+   "couriers": 1
+  },
+  {
+   "source": "Neder-Over-Heembeek",
+   "to": "European Quarter",
+   "couriers": 1
+  },
+  {
+   "source": "Saint-Josse-ten-Noode",
+   "to": "European Quarter",
+   "couriers": 1
+  },
+  {
+   "source": "Schaerbeek",
+   "to": "European Quarter",
+   "couriers": 1
+  },
+  {
+   "source": "Watermael-Boitsfort",
+   "to": "Etterbeek",
+   "couriers": 1
+  }
+ ],
+ "friday_19_most_under_served": [
+  [
+   "Brussels Pentagon",
+   27
+  ],
+  [
+   "Ixelles",
+   8
+  ],
+  [
+   "Saint-Gilles",
+   4
+  ]
+ ],
+ "friday_19_most_over_served": [
+  [
+   "Molenbeek-Saint-Jean",
+   -7
+  ],
+  [
+   "Anderlecht",
+   -5
+  ],
+  [
+   "Uccle",
+   -4
+  ]
+ ],
+ "busiest_zones": [
+  "Brussels Pentagon",
+  "Ixelles",
+  "Schaerbeek"
+ ],
+ "pulp_checks": [
+  {
+   "scenario": "Friday 19:00",
+   "greedy_late": 115.4341,
+   "pulp_late": 115.4341,
+   "same_objective": true,
+   "same_allocation": true
+  },
+  {
+   "scenario": "Saturday 12:00 rain",
+   "greedy_late": 69.7838,
+   "pulp_late": 69.7838,
+   "same_objective": true,
+   "same_allocation": true
+  },
+  {
+   "scenario": "Tuesday 15:00",
+   "greedy_late": 17.6367,
+   "pulp_late": 17.6367,
+   "same_objective": true,
+   "same_allocation": true
+  }
+ ],
+ "sensitivity_reduction_range_pct": [
+  5.6,
+  13.2
+ ]
+}

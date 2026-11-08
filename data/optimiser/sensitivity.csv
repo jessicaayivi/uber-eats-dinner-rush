@@ -1,0 +1,15 @@
+assumption,setting,value,week_late_drift,week_late_realised,week_reduction_realised_pct,week_reduction_full_pct,friday_19_improvement_pct,friday_19_couriers_saved
+weekly_orders,70%,21000.0,3623.4,3272.1,9.7,10.7,9.2,23
+weekly_orders,130%,39000.0,6398.4,5830.4,8.9,10.1,9.3,44
+pickup_weight_food,70%,0.49,4791.4,4522.4,5.6,6.4,5.5,20
+pickup_weight_food,130%,0.91,5270.6,4577.4,13.2,15.0,15.0,54
+rain_uplift,70%,0.105,4946.1,4489.0,9.2,10.5,9.7,35
+rain_uplift,130%,0.195,5014.7,4551.8,9.2,10.5,9.7,35
+compliance,70%,0.42,4983.7,4598.2,7.7,10.5,9.7,35
+compliance,130%,0.78,4983.7,4478.1,10.1,10.5,9.7,35
+staffing_scale,70%,0.7,5764.2,5290.3,8.2,9.0,7.9,22
+staffing_scale,130%,1.3,4511.1,4026.6,10.7,12.4,11.8,50
+curve_b,70%,0.0456,4423.1,4100.4,7.3,8.3,7.7,35
+curve_b,130%,0.0847,5544.3,4947.9,10.8,12.3,11.4,35
+minutes_with_courier,70%,17.563,5126.2,4630.5,9.7,10.7,9.2,23
+minutes_with_courier,130%,32.617,4931.2,4489.4,9.0,10.3,9.3,44
