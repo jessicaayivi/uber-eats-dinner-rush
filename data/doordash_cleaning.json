@@ -1,0 +1,76 @@
+{
+ "cleaning_steps": [
+  [
+   "raw rows",
+   197428
+  ],
+  [
+   "missing timestamps",
+   -7
+  ],
+  [
+   "missing market_id",
+   -987
+  ],
+  [
+   "missing dasher / outstanding-order counts",
+   -16194
+  ],
+  [
+   "negative dasher or order counts (noise)",
+   -81
+  ],
+  [
+   "zero dashers on shift (ratios undefined)",
+   -3595
+  ],
+  [
+   "delivery time outside 5-180 min",
+   -116
+  ],
+  [
+   "outside 2015-01-21 to 2015-02-17 local",
+   0
+  ],
+  [
+   "clean rows",
+   176448
+  ]
+ ],
+ "utc_offset_hours": -8,
+ "local_order_share_by_hour_pct": {
+  "6": 0.0,
+  "7": 0.2,
+  "8": 1.1,
+  "9": 1.7,
+  "10": 2.6,
+  "11": 6.9,
+  "12": 8.0,
+  "13": 5.9,
+  "14": 4.5,
+  "15": 4.2,
+  "16": 6.5,
+  "17": 14.6,
+  "18": 18.8,
+  "19": 13.5,
+  "20": 7.5,
+  "21": 3.5,
+  "22": 0.7,
+  "23": 0.0
+ },
+ "delivery_minutes_percentiles": {
+  "0.5": 44.2,
+  "0.8": 59.6,
+  "0.9": 70.1,
+  "0.95": 80.5,
+  "0.99": 106.0
+ },
+ "late_threshold_minutes": 60,
+ "late_rate_pct": 19.5,
+ "avg_basket_usd": 27.02,
+ "median_basket_usd": 22.28,
+ "busy_above_onshift_share_pct": 22.7,
+ "markets": 6,
+ "market_hours": 2455,
+ "weeks": 4
+}
