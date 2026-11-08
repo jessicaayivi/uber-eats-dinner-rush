@@ -1,0 +1,7 @@
+week_part,daypart,orders_per_week,avg_minutes,late_pct,avg_load_ratio,share_of_all_late_pct
+Fri-Sun,Dinner 17-21,11522,55.2,33.4,1.42,44.7
+Mon-Thu,Dinner 17-21,12446,47.2,17.6,1.22,25.5
+Fri-Sun,Other,5884,43.0,12.8,1.09,8.7
+Mon-Thu,Lunch 11-14,5023,44.2,14.3,1.22,8.4
+Mon-Thu,Other,5111,41.8,11.9,0.99,7.1
+Fri-Sun,Lunch 11-14,4124,42.9,11.7,1.11,5.6

@@ -1,0 +1,13 @@
+category,orders,late_pct,expected_from_load_pct,residual_pts,avg_drive_minutes
+american,17915,19.4,18.7,0.7,9.1
+pizza,15541,24.4,20.0,4.3,9.1
+mexican,15472,14.5,19.5,-4.9,8.9
+burger,9754,18.0,19.1,-1.1,9.0
+sandwich,8913,13.8,17.9,-4.0,8.9
+chinese,8205,20.0,19.3,0.7,9.5
+dessert,8027,22.8,19.8,3.1,9.4
+japanese,7950,27.3,20.0,7.2,9.0
+italian,6567,22.4,20.8,1.6,8.9
+fast,6324,14.5,18.1,-3.6,8.1
+indian,6285,21.8,21.5,0.3,9.4
+thai,6191,22.0,21.8,0.1,9.1
