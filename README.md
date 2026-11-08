@@ -5,7 +5,7 @@
 An independent business case on one question: when does courier supply fall behind demand in a Belgian food-delivery marketplace, what does it cost, and which levers fix it profitably?
 
 - 📊 **Deck:** [Winning the Dinner Rush](https://claude.ai/artifact/CSPXkXz3a7duPuGExZo2zm) (14 slides)
-- 🎛️ **Interactive simulator:** [try it here](https://claude.ai/artifact/3RRum56CuZCVuKgR4eneMw), or from [`simulator/index.html`](simulator/index.html) on GitLab Pages at `https://<your-gitlab-username>.gitlab.io/uber-eats-dinner-rush/`
+- 🎛️ **Interactive simulator:** [try it here](https://jessicaayivi.github.io/uber-eats-dinner-rush/) (GitHub Pages, built from [`simulator/index.html`](simulator/index.html))
 - 🧮 **Analysis:** SQL in [`sql/analysis.sql`](sql/analysis.sql), impact model in [`src/sizing.py`](src/sizing.py)
 
 > **About the data.** Uber does not publish city-level operating data, so this case runs on a **simulated** marketplace (4 cities × 4 weeks × 14 hours a day = 1,568 city-hours, ~223k orders). The economics are anchored on Uber’s public Q3 2026 results: Delivery revenue ÷ gross bookings ≈ 19%. Figures are illustrative; the method is built to be rerun on real data.
@@ -41,7 +41,7 @@ src/sizing.py                 lever scenarios and impact sizing
 src/build_simulator.py        injects the data into the simulator template
 simulator/template.html       simulator source (HTML, CSS, JS model)
 simulator/index.html          built simulator, one self-contained page
-.gitlab-ci.yml                publishes the simulator with GitLab Pages
+.github/workflows/pages.yml   publishes the simulator with GitHub Pages
 ```
 
 ## Reproduce
