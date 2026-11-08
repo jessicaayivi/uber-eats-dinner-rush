@@ -1,6 +1,6 @@
 # Winning the Dinner Rush: an Uber Eats Belgium marketplace case
 
-**Jessica Ayivi** · Strategy & Operations · [LinkedIn URL] · [email]
+**Jessica Ayivi** · Strategy & Operations · [jessicaayivi1@gmail.com](mailto:jessicaayivi1@gmail.com)
 
 An independent business case on one question: when does courier supply fall behind demand in a Belgian food-delivery marketplace, what does it cost, and which levers fix it profitably?
 
