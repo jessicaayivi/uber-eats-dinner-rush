@@ -32,6 +32,12 @@ The analysis is the evidence; the map is the action: the real data shows idle co
 | **Across the sensitivity range** | −5.6% to −13.2% a week |
 | **The honest caveat** | Spreading couriers in proportion to restaurants gets within **0.8%** of the optimum. The value is not clever maths: it is correcting the drift, every hour, at scale. |
 
+| Friday 19:00, today (couriers drift to where customers live) | Friday 19:00, optimised (same 163 couriers) |
+|---|---|
+| ![Load by zone today](docs/brussels_friday_19h_today.png) | ![Load by zone, optimised](docs/brussels_friday_19h_optimised.png) |
+
+*Hexagons coloured by orders per courier (red = short of couriers, grey = idle). Map data © OpenStreetMap contributors. In the optimised view Haren stays red: its few orders need a single courier, so it reads as overloaded on paper.*
+
 **Why the imbalance exists:** the Pentagon has **29% of Brussels' food places but 5% of its residents**; Molenbeek, Anderlecht and Schaerbeek are the reverse. Couriers finish each trip where customers live, while the next pickups are where the restaurants are.
 
 ## Data
