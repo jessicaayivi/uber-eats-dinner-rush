@@ -1,0 +1,26 @@
+zone,hexes,residents,food_places,lat,lng,neighbours
+Anderlecht,28,124159.5,150,50.8291,4.2922,Brussels Pentagon;Forest;Molenbeek-Saint-Jean;Saint-Gilles
+Auderghem,15,33263.6,72,50.8089,4.4411,Etterbeek;Ixelles;Watermael-Boitsfort;Woluwe-Saint-Pierre
+Berchem-Sainte-Agathe,4,21081.0,13,50.865,4.2935,Ganshoren;Molenbeek-Saint-Jean
+Brussels North,7,29805.3,65,50.8738,4.3663,Brussels Pentagon;Evere;Haren;Jette;Laeken;Molenbeek-Saint-Jean;Neder-Over-Heembeek;Schaerbeek
+Brussels Pentagon,8,63874.8,1009,50.846,4.3549,Anderlecht;Brussels North;European Quarter;Ixelles;Molenbeek-Saint-Jean;Saint-Gilles;Saint-Josse-ten-Noode;Schaerbeek
+Etterbeek,7,55451.7,183,50.8334,4.3965,Auderghem;European Quarter;Ixelles;Woluwe-Saint-Lambert;Woluwe-Saint-Pierre
+European Quarter,3,22063.9,157,50.8437,4.381,Brussels Pentagon;Etterbeek;Ixelles;Saint-Josse-ten-Noode;Schaerbeek;Woluwe-Saint-Lambert
+Evere,6,36424.7,46,50.8677,4.4088,Brussels North;Haren;Schaerbeek;Woluwe-Saint-Lambert
+Forest,10,67158.1,114,50.8165,4.3269,Anderlecht;Ixelles;Saint-Gilles;Uccle
+Ganshoren,4,29306.2,26,50.8739,4.312,Berchem-Sainte-Agathe;Jette;Koekelberg;Molenbeek-Saint-Jean
+Haren,10,13879.0,23,50.8874,4.4156,Brussels North;Evere;Neder-Over-Heembeek
+Ixelles,10,87362.8,474,50.8208,4.3747,Auderghem;Brussels Pentagon;Etterbeek;European Quarter;Forest;Louise;Saint-Gilles;Uccle;Watermael-Boitsfort
+Jette,8,49121.9,66,50.8826,4.3204,Brussels North;Ganshoren;Koekelberg;Laeken;Molenbeek-Saint-Jean
+Koekelberg,1,8952.4,3,50.8631,4.3237,Ganshoren;Jette;Molenbeek-Saint-Jean
+Laeken,12,57997.8,113,50.8872,4.3495,Brussels North;Jette;Neder-Over-Heembeek
+Louise,5,12695.7,38,50.807,4.3799,Ixelles;Uccle;Watermael-Boitsfort
+Molenbeek-Saint-Jean,10,113399.7,86,50.8553,4.3186,Anderlecht;Berchem-Sainte-Agathe;Brussels North;Brussels Pentagon;Ganshoren;Jette;Koekelberg
+Neder-Over-Heembeek,9,21841.8,34,50.8992,4.3884,Brussels North;Haren;Laeken
+Saint-Gilles,3,38838.0,213,50.8303,4.3454,Anderlecht;Brussels Pentagon;Forest;Ixelles
+Saint-Josse-ten-Noode,1,18704.4,32,50.853,4.3759,Brussels Pentagon;European Quarter;Schaerbeek
+Schaerbeek,12,124336.8,279,50.8619,4.3847,Brussels North;Brussels Pentagon;European Quarter;Evere;Saint-Josse-ten-Noode;Woluwe-Saint-Lambert
+Uccle,34,78761.1,93,50.7893,4.3611,Forest;Ixelles;Louise;Watermael-Boitsfort
+Watermael-Boitsfort,20,29953.6,45,50.7939,4.422,Auderghem;Ixelles;Louise;Uccle
+Woluwe-Saint-Lambert,10,55387.0,97,50.8482,4.4287,Etterbeek;European Quarter;Evere;Schaerbeek;Woluwe-Saint-Pierre
+Woluwe-Saint-Pierre,15,42018.2,71,50.8319,4.4457,Auderghem;Etterbeek;Woluwe-Saint-Lambert
