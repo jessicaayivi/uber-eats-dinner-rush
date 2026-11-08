@@ -1,80 +1,90 @@
 {
  "knee": {
-  "load": 1.2,
-  "slope_below_per_0_1": 0.802,
-  "slope_above_per_0_1": 4.631
+  "load": 1.95,
+  "late_pts_per_1_load_below": 6.55,
+  "late_pts_per_1_load_above": 1.21
  },
- "stress_load": 1.2,
+ "stress_load": 1.95,
  "assumptions": {
-  "late_minutes": {
-   "value": 60,
+  "late_definition": {
+   "value": "arrive > promise",
    "source": "data",
-   "note": "Late = over 60 min: the 'within the hour' promise, 80th percentile (prepare_doordash.py)"
+   "note": "Late = delivered after the time the platform promised the customer"
   },
-  "quiet_load": {
-   "value": 0.8,
+  "slow_merchant_share": {
+   "value": 0.1,
    "source": "data",
-   "note": "Below 0.8 outstanding orders per dasher the late rate sits at its ~8% floor (sql Q3)"
+   "note": "Account-management target: the 10% of merchants (50+ orders) with the largest pickup overrun"
   },
-  "basket_usd": {
-   "value": 27.02,
+  "stack_cap": {
+   "value": 2,
    "source": "data",
-   "note": "Average order subtotal (prepare_doordash.py)"
-  },
-  "batch_delay_pct": {
-   "value": 11.1,
-   "source": "data",
-   "note": "A second order in the trip adds 11% delivery time, like-for-like (prepare_india.py, Indian data)"
+   "note": "Like-for-like, a 3rd order in a run adds ~5 late points over a 2nd (sql Q6)"
   },
   "take_rate": {
    "value": 0.19,
    "source": "public",
    "note": "Uber Q3 2026: Delivery revenue $5.5B / gross bookings $28.5B"
   },
-  "rebalance_share": {
+  "merchant_fix_share": {
    "value": 0.5,
    "source": "assumption",
-   "note": "Share of idle quiet-hour dasher time that can be moved into stressed hours by shift planning"
+   "note": "Share of the slowest merchants' pickup overrun removed by account management (prep-time fixes, earlier courier timing)"
   },
-  "batch_share": {
-   "value": 0.2,
-   "source": "assumption",
-   "note": "Share of orders in stressed hours that can be paired with another order"
-  },
-  "batch_courier_saving": {
+  "refusal_fix_share": {
    "value": 0.3,
    "source": "assumption",
-   "note": "Courier time saved per paired order (Indian trip times imply up to 44%)"
+   "note": "Share of the delay from courier refusals removed by better matching / acceptance nudges"
+  },
+  "stack_reroute_share": {
+   "value": 0.5,
+   "source": "assumption",
+   "note": "Share of at-risk over-cap orders the dispatcher hands to another (idle) courier"
+  },
+  "stack_precision": {
+   "value": 0.25,
+   "source": "assumption",
+   "note": "Share of re-routed orders that would really have been late (the rest are re-routed unnecessarily)"
+  },
+  "reroute_cost_eur": {
+   "value": 2.5,
+   "source": "assumption",
+   "note": "Extra courier pay for a separate trip instead of a stacked drop"
   },
   "quest_share": {
    "value": 0.35,
    "source": "assumption",
-   "note": "Share of the original gap that targeted quests bring online"
+   "note": "Share of the courier gap that targeted quests bring online"
   },
   "quest_trigger_load": {
-   "value": 1.5,
+   "value": 2.5,
    "source": "assumption",
-   "note": "Quests fire only where load after steps 1-2 is still above this"
+   "note": "Quests fire only in district-half-hours whose load is above this"
   },
-  "quest_pay_usd": {
+  "quest_pay_eur": {
    "value": 5.0,
    "source": "assumption",
-   "note": "Quest pay per extra dasher-hour"
+   "note": "Quest pay per extra courier-hour"
   },
   "quest_leakage": {
    "value": 0.3,
    "source": "assumption",
-   "note": "Extra quest spend paid to dashers who would have worked anyway"
+   "note": "Extra quest spend paid to couriers who would have worked anyway"
   },
-  "blanket_bonus_usd": {
+  "blanket_bonus_eur": {
    "value": 4.0,
    "source": "assumption",
-   "note": "Blanket bonus per online dasher-hour, Fri-Sun 17:00-21:00"
+   "note": "Blanket bonus per busy courier-hour at lunch (11-13) and dinner (17-20) peaks"
   },
   "blanket_show_share": {
    "value": 0.6,
    "source": "assumption",
-   "note": "Share of the gap that the blanket bonus brings online"
+   "note": "Share of the courier gap that the blanket bonus brings online"
+  },
+  "basket_eur": {
+   "value": 27.0,
+   "source": "assumption",
+   "note": "Average basket (the Meituan data has no prices)"
   },
   "lost_orders_per_late": {
    "value": 0.5,
@@ -84,166 +94,115 @@
  },
  "curve": {
   "x": [
-   0.05,
-   0.15,
-   0.25,
-   0.35,
-   0.45,
-   0.55,
-   0.65,
+   0.5,
    0.75,
-   0.85,
-   0.95,
-   1.05,
-   1.15,
+   1.0,
    1.25,
-   1.35,
-   1.45,
-   1.55,
-   1.65,
+   1.5,
    1.75,
-   1.85,
-   1.95,
-   2.05,
-   2.15,
+   2.0,
    2.25,
-   2.35,
-   2.45
-  ],
-  "late": [
-   0.0777,
-   0.0777,
-   0.0777,
-   0.0777,
-   0.0777,
-   0.0777,
-   0.0777,
-   0.083,
-   0.0928,
-   0.1108,
-   0.1108,
-   0.1358,
-   0.1573,
-   0.196,
-   0.2373,
-   0.296,
-   0.3469,
-   0.3859,
-   0.4468,
-   0.4984,
-   0.5838,
-   0.6108,
-   0.6108,
-   0.6108,
-   0.6108
-  ],
-  "late_batched": [
-   0.128,
-   0.128,
-   0.128,
-   0.128,
-   0.128,
-   0.128,
-   0.128,
-   0.1339,
-   0.1494,
-   0.1795,
-   0.1795,
-   0.2176,
-   0.2461,
-   0.3052,
-   0.3571,
-   0.4225,
-   0.4755,
-   0.5169,
-   0.5794,
-   0.627,
-   0.7164,
-   0.7164,
-   0.7164,
-   0.7164,
-   0.7164
+   2.5,
+   2.75,
+   3.0,
+   3.25,
+   3.5,
+   3.75,
+   4.0
   ],
   "orders": [
-   705,
-   269,
-   920,
-   1425,
-   3847,
-   3996,
-   6189,
-   8688,
-   13022,
-   18052,
-   12529,
-   18816,
-   17309,
-   16596,
-   14220,
-   9940,
-   9670,
-   7002,
-   4548,
-   4011,
-   1182,
-   824,
-   777,
-   517,
-   1394
+   232,
+   4572,
+   20514,
+   88295,
+   85402,
+   87008,
+   75979,
+   54113,
+   33694,
+   25097,
+   18911,
+   12414,
+   8079,
+   4229,
+   18593
   ],
-  "observed": [
-   0.1163,
-   0.0372,
-   0.0783,
-   0.0765,
-   0.0858,
-   0.0668,
-   0.0774,
-   0.083,
-   0.0928,
-   0.1151,
-   0.1046,
-   0.1358,
-   0.1573,
-   0.196,
-   0.2373,
-   0.296,
-   0.3469,
-   0.3859,
-   0.4468,
-   0.4984,
-   0.5838,
-   0.6262,
-   0.6088,
-   0.6267,
-   0.5968
+  "late": [
+   0.125,
+   0.114,
+   0.1043,
+   0.1121,
+   0.1208,
+   0.1531,
+   0.1647,
+   0.1608,
+   0.1629,
+   0.1621,
+   0.1657,
+   0.1883,
+   0.1775,
+   0.1918,
+   0.1861
+  ],
+  "dispatch": [
+   3.232,
+   3.232,
+   3.232,
+   3.232,
+   3.232,
+   3.784,
+   4.082,
+   4.082,
+   4.092,
+   4.474,
+   4.495,
+   4.837,
+   4.837,
+   5.736,
+   5.748
+  ],
+  "lastmile": [
+   11.784,
+   13.371,
+   13.371,
+   13.371,
+   13.454,
+   15.359,
+   15.849,
+   15.849,
+   15.849,
+   16.225,
+   16.24,
+   16.916,
+   16.916,
+   17.222,
+   17.872
   ]
  },
  "plan": {
-  "value_per_late_avoided_usd": 2.57,
-  "orders_per_week": 44112,
-  "late_per_week_before": 8609,
-  "late_pct_before": 19.5,
-  "late_pct_after": 17.5,
-  "late_in_stressed_hours_per_week": [
-   6140,
-   5242
-  ],
-  "avoided_per_week_step1": 162,
-  "avoided_per_week_step2": 284,
-  "avoided_per_week_step3": 441,
-  "avoided_per_week_total": 886,
-  "gap_dasher_hours_per_week": 2772,
-  "slack_dasher_hours_per_week": 404,
-  "rebalanced_dasher_hours_per_week": 202,
-  "quest_dasher_hours_per_week": 405,
-  "quest_spend_per_week_usd": 2635,
-  "quest_cost_per_late_avoided_usd": 5.98,
-  "plan_net_per_week_usd": -361,
-  "blanket_avoided_per_week": 859,
-  "blanket_spend_per_week_usd": 34102,
-  "blanket_cost_per_late_avoided_usd": 39.71,
-  "blanket_net_per_week_usd": -31898
+  "value_per_late_avoided_eur": 2.56,
+  "orders_per_week": 475118,
+  "late_per_week_before": 70178,
+  "late_pct_before": 14.77,
+  "late_pct_after": 12.59,
+  "avoided_per_week_merchants": 3110,
+  "avoided_per_week_refusals": 522,
+  "avoided_per_week_stacking": 5138,
+  "avoided_per_week_quests": 1585,
+  "avoided_per_week_total": 10354,
+  "rerouted_orders_per_week": 69975,
+  "reroute_spend_per_week_eur": 174938,
+  "reroute_cost_per_late_avoided_eur": 34.05,
+  "quest_courier_hours_per_week": 3145,
+  "quest_spend_per_week_eur": 20445,
+  "quest_cost_per_late_avoided_eur": 12.9,
+  "plan_spend_per_week_eur": 195382,
+  "plan_net_per_week_eur": -168824,
+  "free_levers_net_per_week_eur": 9315,
+  "blanket_avoided_per_week": 2018,
+  "blanket_spend_per_week_eur": 249374,
+  "blanket_cost_per_late_avoided_eur": 123.54,
+  "blanket_net_per_week_eur": -244196
  },
- "sensitivity_holds": "20 of 20"
+ "sensitivity_targeted_beats_blanket": "26 of 26"
 }

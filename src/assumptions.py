@@ -5,28 +5,31 @@ Each entry says where it comes from:
   "public"     a published figure (source given)
   "assumption" my judgement; sizing.py tests each one at 50% and 150% of its value
 
-Money is in US dollars because the delivery data is American (DoorDash, 2015).
+The Meituan data has no prices, fees or courier pay, so every euro figure is an assumption,
+set to plausible Western-European levels and tested in the sensitivity table.
 """
 
 ASSUMPTIONS = {
-    # --- Measured from the data ---
-    "late_minutes":        dict(value=60, source="data", note="Late = over 60 min: the 'within the hour' promise, 80th percentile (prepare_doordash.py)"),
-    "quiet_load":          dict(value=0.8, source="data", note="Below 0.8 outstanding orders per dasher the late rate sits at its ~8% floor (sql Q3)"),
-    "basket_usd":          dict(value=27.02, source="data", note="Average order subtotal (prepare_doordash.py)"),
-    "batch_delay_pct":     dict(value=11.1, source="data", note="A second order in the trip adds 11% delivery time, like-for-like (prepare_india.py, Indian data)"),
+    # --- Measured from the data (prepare_meituan.py, sql/analysis.sql) ---
+    "late_definition":       dict(value="arrive > promise", source="data", note="Late = delivered after the time the platform promised the customer"),
+    "slow_merchant_share":   dict(value=0.10, source="data", note="Account-management target: the 10% of merchants (50+ orders) with the largest pickup overrun"),
+    "stack_cap":             dict(value=2, source="data", note="Like-for-like, a 3rd order in a run adds ~5 late points over a 2nd (sql Q6)"),
     # --- Public ---
-    "take_rate":           dict(value=0.19, source="public", note="Uber Q3 2026: Delivery revenue $5.5B / gross bookings $28.5B"),
+    "take_rate":             dict(value=0.19, source="public", note="Uber Q3 2026: Delivery revenue $5.5B / gross bookings $28.5B"),
     # --- Assumptions (sensitivity-tested) ---
-    "rebalance_share":     dict(value=0.50, source="assumption", note="Share of idle quiet-hour dasher time that can be moved into stressed hours by shift planning"),
-    "batch_share":         dict(value=0.20, source="assumption", note="Share of orders in stressed hours that can be paired with another order"),
-    "batch_courier_saving": dict(value=0.30, source="assumption", note="Courier time saved per paired order (Indian trip times imply up to 44%)"),
-    "quest_share":         dict(value=0.35, source="assumption", note="Share of the original gap that targeted quests bring online"),
-    "quest_trigger_load":  dict(value=1.5, source="assumption", note="Quests fire only where load after steps 1-2 is still above this"),
-    "quest_pay_usd":       dict(value=5.0, source="assumption", note="Quest pay per extra dasher-hour"),
-    "quest_leakage":       dict(value=0.30, source="assumption", note="Extra quest spend paid to dashers who would have worked anyway"),
-    "blanket_bonus_usd":   dict(value=4.0, source="assumption", note="Blanket bonus per online dasher-hour, Fri-Sun 17:00-21:00"),
-    "blanket_show_share":  dict(value=0.60, source="assumption", note="Share of the gap that the blanket bonus brings online"),
-    "lost_orders_per_late": dict(value=0.5, source="assumption", note="Future orders lost per late delivery (retention effect)"),
+    "merchant_fix_share":    dict(value=0.50, source="assumption", note="Share of the slowest merchants' pickup overrun removed by account management (prep-time fixes, earlier courier timing)"),
+    "refusal_fix_share":     dict(value=0.30, source="assumption", note="Share of the delay from courier refusals removed by better matching / acceptance nudges"),
+    "stack_reroute_share":   dict(value=0.50, source="assumption", note="Share of at-risk over-cap orders the dispatcher hands to another (idle) courier"),
+    "stack_precision":       dict(value=0.25, source="assumption", note="Share of re-routed orders that would really have been late (the rest are re-routed unnecessarily)"),
+    "reroute_cost_eur":      dict(value=2.5, source="assumption", note="Extra courier pay for a separate trip instead of a stacked drop"),
+    "quest_share":           dict(value=0.35, source="assumption", note="Share of the courier gap that targeted quests bring online"),
+    "quest_trigger_load":    dict(value=2.5, source="assumption", note="Quests fire only in district-half-hours whose load is above this"),
+    "quest_pay_eur":         dict(value=5.0, source="assumption", note="Quest pay per extra courier-hour"),
+    "quest_leakage":         dict(value=0.30, source="assumption", note="Extra quest spend paid to couriers who would have worked anyway"),
+    "blanket_bonus_eur":     dict(value=4.0, source="assumption", note="Blanket bonus per busy courier-hour at lunch (11-13) and dinner (17-20) peaks"),
+    "blanket_show_share":    dict(value=0.60, source="assumption", note="Share of the courier gap that the blanket bonus brings online"),
+    "basket_eur":            dict(value=27.0, source="assumption", note="Average basket (the Meituan data has no prices)"),
+    "lost_orders_per_late":  dict(value=0.5, source="assumption", note="Future orders lost per late delivery (retention effect)"),
 }
 
 
@@ -35,8 +38,8 @@ def value(name):
 
 
 def defaults():
-    """All values as a plain dict (what the simulator starts from)."""
-    return {name: a["value"] for name, a in ASSUMPTIONS.items()}
+    """All numeric values as a plain dict (what the simulator starts from)."""
+    return {name: a["value"] for name, a in ASSUMPTIONS.items() if not isinstance(a["value"], str)}
 
 
 def sensitivity_names():

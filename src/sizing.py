@@ -1,19 +1,18 @@
-"""Size the three levers on the real DoorDash data and compare them with a blanket peak bonus.
+"""Size the levers that cut late deliveries, on the real Meituan data, and compare with a blanket peak bonus.
 
 How the model works, in plain words:
-1. The response curve: the share of late deliveries at each load ratio (outstanding orders per
-   on-shift dasher), read straight from the data in 0.1 steps and forced to never decrease.
-2. Every lever changes the number of dashers (or how much each one can carry) in a market-hour.
-   That lowers the load each order faces, and the curve says how many late deliveries that removes.
-3. Dashers per market-hour come from Little's law: orders x hours per delivery / load ratio.
+- Every late order is late by a known number of minutes (rounded up). It becomes on time if the levers
+  save at least that many minutes on its journey.
+- Each lever saves minutes on one stage, measured from the data (prepare_meituan.py):
+    1. Merchant fixes   (account management): part of the pickup overrun at the slowest 10% of merchants.
+    2. Refusal fixes    (dispatch/product):   part of the delay caused by couriers refusing the order.
+    3. Stacking cap     (dispatch policy):    at-risk orders that would be the 3rd+ in a run go to another
+                                              courier; saves the measured extra last-mile time of a bigger run.
+    4. Targeted quests  (courier incentives): extra couriers where load is highest; the dispatch wait and
+                                              last mile drop along the curves measured against load.
+- Compared with: a blanket bonus for every busy courier at the lunch and dinner peaks.
 
-Levers (applied in order, only to stressed market-hours, where load > the knee of the curve):
-  1. Rebalance shifts: move idle dasher time out of quiet hours (load < 0.8) in the same market.
-  2. Batching: pair a share of orders; each pair frees courier time but delivers 11% later.
-  3. Targeted quests: paid extra hours, only where load after steps 1-2 is still above a trigger.
-Compared with: a blanket bonus for every online dasher on Fri-Sun dinners.
-
-Inputs : data/market_hour.csv, data/market_hour_load.csv (prepare_doordash.py), src/assumptions.py
+Inputs : data/slots.csv, data/late_buckets.csv (prepare_meituan.py), src/assumptions.py
 Output : data/sizing.json (printed too), data/results/sensitivity.csv
 Run from the repository root: python src/sizing.py
 """
@@ -24,24 +23,26 @@ import pandas as pd
 
 from assumptions import ASSUMPTIONS, defaults, sensitivity_names
 
-WEEKS = 4
-MIN_LOAD_FOR_DASHERS = 0.3   # Little's law estimate is unstable at near-zero load (36 tiny market-hours)
+PEAK_HALFHOURS = set(range(22, 26)) | set(range(34, 40))      # 11:00-13:00 and 17:00-20:00
+LOAD_BINS = np.round(np.arange(0.5, 4.01, 0.25), 2)           # curve points; loads outside are flat
 
 
 # ---------- data ----------
 def load_tables():
-    mh = pd.read_csv("data/market_hour.csv")
-    mh["dashers"] = mh.orders * mh.avg_minutes / 60 / np.maximum(mh.load_ratio, MIN_LOAD_FOR_DASHERS)
-    mh["weekend_dinner"] = mh.dow.isin(["Friday", "Saturday", "Sunday"]) & mh.hour.between(17, 20)
-    mh["mh"] = np.arange(len(mh))
-    bins = pd.read_csv("data/market_hour_load.csv").merge(mh[["market_id", "date", "hour", "mh"]],
-                                                         on=["market_id", "date", "hour"])
-    return mh, bins
+    s = pd.read_csv("data/slots.csv")
+    s["key"] = np.arange(len(s))
+    s["busy_couriers"] = s.courier_min / s.days / 30                       # average couriers on a run in the half-hour
+    s["load"] = np.where(s.courier_min > 0, s.order_min / s.courier_min.where(s.courier_min > 0, 1), np.nan)
+    s["peak"] = s.halfhour.isin(PEAK_HALFHOURS)
+    b = pd.read_csv("data/late_buckets.csv").merge(s[["da_id", "dow", "halfhour", "key", "days"]],
+                                                    on=["da_id", "dow", "halfhour"])
+    b["per_week"] = b.orders / b.days
+    return s, b
 
 
-# ---------- response curve ----------
+# ---------- curves against load ----------
 def monotone(rate, weight):
-    """Weighted pool-adjacent-violators: the closest non-decreasing curve to the observed rates."""
+    """Weighted pool-adjacent-violators: the closest non-decreasing curve to the observed values."""
     blocks = [[r, w, 1] for r, w in zip(rate, weight)]
     i = 0
     while i < len(blocks) - 1:
@@ -54,150 +55,150 @@ def monotone(rate, weight):
     return np.concatenate([[r] * n for r, _, n in blocks])
 
 
-def response_curve(bins):
-    g = bins.groupby("load_bin")[["orders", "late", "late_if_batched"]].sum()
-    return dict(x=(g.index.values + 0.05).round(2).tolist(),
-                late=monotone(g.late / g.orders, g.orders).round(4).tolist(),
-                late_batched=monotone(g.late_if_batched / g.orders, g.orders).round(4).tolist(),
-                orders=g.orders.astype(int).tolist(),
-                observed=(g.late / g.orders).round(4).tolist())
+def load_curves(s):
+    """Order-weighted late rate, dispatch wait and last mile per load bin (0.25 wide), made non-decreasing."""
+    x = s.dropna(subset=["load"])
+    x = x[x.courier_min >= 30]
+    idx = np.clip(np.floor((x.load - LOAD_BINS[0]) / 0.25 + 0.5).astype(int), 0, len(LOAD_BINS) - 1)
+    g = x.assign(i=idx).groupby("i")[["orders", "late", "sum_dispatch", "sum_lastmile"]].sum().reindex(range(len(LOAD_BINS)))
+    g = g.fillna(0)
+    w = g.orders.clip(lower=1)
+    return dict(x=LOAD_BINS.tolist(), orders=g.orders.astype(int).tolist(),
+                late=(g.late / w).round(4).tolist(),
+                dispatch=monotone((g.sum_dispatch / w).values, g.orders.values).round(3).tolist(),
+                lastmile=monotone((g.sum_lastmile / w).values, g.orders.values).round(3).tolist())
 
 
 def knee(curve):
-    """Load where the curve bends: best two-line fit (weighted), searched in 0.05 steps."""
-    x, y, w = map(np.asarray, (curve["x"], curve["observed"], curve["orders"]))
+    """Load where the late-rate curve bends: best two-line fit (weighted), searched in 0.05 steps."""
+    x, y, w = map(np.asarray, (curve["x"], curve["late"], curve["orders"]))
+    keep = w > 0
+    x, y, w = x[keep], y[keep], w[keep]
     best = None
-    for k in np.arange(0.6, 2.01, 0.05):
+    for k in np.arange(1.0, 3.01, 0.05):
         X = np.c_[np.ones_like(x), x, np.maximum(0, x - k)] * np.sqrt(w)[:, None]
         coef, *_ = np.linalg.lstsq(X, y * np.sqrt(w), rcond=None)
-        sse = (((X @ coef) - y * np.sqrt(w)) ** 2).sum()
+        sse = ((X @ coef - y * np.sqrt(w)) ** 2).sum()
         if best is None or sse < best[0]:
             best = (sse, round(float(k), 2), coef)
     _, k, coef = best
-    return dict(load=k, slope_below_per_0_1=round(coef[1] * 10, 3), slope_above_per_0_1=round((coef[1] + coef[2]) * 10, 3))
+    return dict(load=k, late_pts_per_1_load_below=round(100 * coef[1], 2), late_pts_per_1_load_above=round(100 * (coef[1] + coef[2]), 2))
 
 
 # ---------- the model ----------
-def simulate(mh, bins, curve, p, stress_load):
-    """Late deliveries avoided and incentive spend for parameter set p (see assumptions.py)."""
-    c = lambda x: np.interp(x, curve["x"], curve["late"])
-    cb = lambda x: np.interp(x, curve["x"], curve["late_batched"])
-    D, load = mh.dashers.values, mh.load_ratio.values
-    stressed = load > stress_load
-    quiet = load < p["quiet_load"]
-    gap = np.where(stressed, D * (load / stress_load - 1), 0)
-    slack = np.where(quiet, D * (1 - load / p["quiet_load"]), 0)
-
-    # Step 1: each market's movable slack is spread over its stressed hours in proportion to their gap
-    m = mh.market_id.values
-    add1, give = np.zeros(len(mh)), np.zeros(len(mh))
-    for market in np.unique(m):
-        sel = m == market
-        need, pool = gap[sel].sum(), slack[sel].sum()
-        used = min(p["rebalance_share"] * pool, need)
-        if need > 0:
-            add1[sel] = gap[sel] * used / need
-        if pool > 0:
-            give[sel] = slack[sel] * used / pool
-
-    # Step 2: batching stretches each dasher in stressed hours
-    stretch = np.where(stressed, 1 / (1 - p["batch_share"] * p["batch_courier_saving"]), 1)
-    load12 = np.where(stressed, load * D / ((D + add1) * stretch), load)
-
-    # Step 3: quests where load is still above the trigger
-    add3 = np.where(stressed & (load12 > p["quest_trigger_load"]), p["quest_share"] * gap, 0)
-    quest_cost = (add3 * p["quest_pay_usd"] * (1 + p["quest_leakage"])).sum()
-
-    scale = np.where(stressed, D / ((D + add1 + add3) * stretch), D / np.maximum(D - give, 1e-9))
-    b = bins.mh.values
-    x, n = bins.load_bin.values + 0.05, bins.orders.values
-    before = n * c(x)
-    s_share = np.where(stressed[b], p["batch_share"], 0)
-    after = n * ((1 - s_share) * c(x * scale[b]) + s_share * cb(x * scale[b]))
-
-    # Blanket bonus on Fri-Sun dinners, for comparison
-    wd = mh.weekend_dinner.values
-    add_bl = np.where(wd, p["blanket_show_share"] * gap, 0)
-    blanket_cost = (np.where(wd, D + add_bl, 0) * p["blanket_bonus_usd"]).sum()
-    after_bl = n * c(x * (D / (D + add_bl))[b])
-
-    # "Before" is the observed late count; the curve only says how much each lever changes it
-    in_stress = stressed[b]
-    observed, avoided = bins.late.values, before - after
-    return dict(late_before=observed.sum(), late_after=observed.sum() - avoided.sum(), avoided=avoided.sum(),
-                late_stressed_before=observed[in_stress].sum(),
-                late_stressed_after=observed[in_stress].sum() - avoided[in_stress].sum(),
-                quest_cost=quest_cost, quest_hours=add3.sum(), rebalanced_hours=add1.sum(),
-                gap_hours=gap.sum(), slack_hours=slack.sum(),
-                blanket_avoided=(before - after_bl).sum(), blanket_cost=blanket_cost)
+def supply_saving(s, curve, stress, add):
+    """Minutes of dispatch wait + last mile saved in each slot when `add` couriers join."""
+    c = s.busy_couriers.values
+    load = np.nan_to_num(s.load.values)
+    new_load = np.where(add > 0, load * c / np.maximum(c + add, 1e-9), load)
+    f = lambda y, l: np.interp(l, curve["x"], y)
+    return (f(curve["dispatch"], load) - f(curve["dispatch"], new_load)) + (f(curve["lastmile"], load) - f(curve["lastmile"], new_load))
 
 
-def plan(mh, bins, curve, p, stress_load):
-    """Run the plan step by step and turn it into weekly business numbers."""
-    v = p["lost_orders_per_late"] * p["basket_usd"] * p["take_rate"]   # net revenue per late delivery
-    s1 = simulate(mh, bins, curve, {**p, "batch_share": 0, "quest_share": 0}, stress_load)
-    s2 = simulate(mh, bins, curve, {**p, "quest_share": 0}, stress_load)
-    s3 = simulate(mh, bins, curve, p, stress_load)
-    w = lambda x: x / WEEKS
-    orders = bins.orders.sum()
-    quest_avoided = s3["avoided"] - s2["avoided"]
+def courier_gap(s, stress):
+    load = np.nan_to_num(s.load.values)
+    return np.where(load > stress, s.busy_couriers.values * (load / stress - 1), 0)
+
+
+def simulate(s, b, curve, p, stress):
+    """Late orders avoided per week, and weekly spend, for parameter set p."""
+    gap = courier_gap(s, stress)
+    load = np.nan_to_num(s.load.values)
+    add_q = np.where(load > p["quest_trigger_load"], p["quest_share"] * gap, 0)
+    save_q = supply_saving(s, curve, stress, add_q)[b.key.values]
+    base = p["merchant_fix_share"] * b.merchant_save.values + p["refusal_fix_share"] * b.refusal_save.values + save_q
+    need = b.late_min.values
+    fixed_without = base >= need
+    fixed_with = base + b.stack_save.values >= need
+    share = np.where(b.stack_save.values > 0, p["stack_reroute_share"], 0)
+    fixed = (1 - share) * fixed_without + share * fixed_with
+    wk = b.per_week.values
+    eligible_stack = (wk * (b.stack_save.values > 0)).sum()
+    rerouted = p["stack_reroute_share"] * eligible_stack / p["stack_precision"]
+
+    add_bl = np.where(s.peak.values, p["blanket_show_share"] * gap, 0)
+    save_bl = supply_saving(s, curve, stress, add_bl)[b.key.values]
+    bl_cost = (np.where(s.peak.values, s.busy_couriers.values + add_bl, 0) * 0.5 * p["blanket_bonus_eur"]).sum()
+    return dict(avoided=(wk * fixed).sum(), quest_hours=(add_q * 0.5).sum(),
+                quest_cost=(add_q * 0.5).sum() * p["quest_pay_eur"] * (1 + p["quest_leakage"]),
+                rerouted=rerouted, reroute_cost=rerouted * p["reroute_cost_eur"],
+                blanket_avoided=(wk * (save_bl >= need)).sum(), blanket_cost=bl_cost)
+
+
+def plan(s, b, curve, p, stress):
+    """Run the levers one after another and turn them into weekly business numbers."""
+    off = dict(merchant_fix_share=0, refusal_fix_share=0, stack_reroute_share=0, quest_share=0)
+    steps = [("merchant_fix_share",), ("merchant_fix_share", "refusal_fix_share"),
+             ("merchant_fix_share", "refusal_fix_share", "stack_reroute_share"),
+             ("merchant_fix_share", "refusal_fix_share", "stack_reroute_share", "quest_share")]
+    runs = [simulate(s, b, curve, {**p, **{k: v for k, v in off.items() if k not in on}}, stress) for on in steps]
+    r = runs[-1]
+    v = p["lost_orders_per_late"] * p["basket_eur"] * p["take_rate"]
+    orders = (s.orders / s.days).sum()
+    late = (s.late / s.days).sum()
+    avoided = [x["avoided"] for x in runs]
+    quest_avoided = avoided[3] - avoided[2]
+    stack_avoided = avoided[2] - avoided[1]
+    spend = r["quest_cost"] + r["reroute_cost"]
     return {
-        "value_per_late_avoided_usd": round(v, 2),
-        "orders_per_week": round(w(orders)),
-        "late_per_week_before": round(w(s3["late_before"])),
-        "late_pct_before": round(100 * s3["late_before"] / orders, 1),
-        "late_pct_after": round(100 * s3["late_after"] / orders, 1),
-        "late_in_stressed_hours_per_week": [round(w(s3["late_stressed_before"])), round(w(s3["late_stressed_after"]))],
-        "avoided_per_week_step1": round(w(s1["avoided"])),
-        "avoided_per_week_step2": round(w(s2["avoided"] - s1["avoided"])),
-        "avoided_per_week_step3": round(w(quest_avoided)),
-        "avoided_per_week_total": round(w(s3["avoided"])),
-        "gap_dasher_hours_per_week": round(w(s3["gap_hours"])),
-        "slack_dasher_hours_per_week": round(w(s3["slack_hours"])),
-        "rebalanced_dasher_hours_per_week": round(w(s3["rebalanced_hours"])),
-        "quest_dasher_hours_per_week": round(w(s3["quest_hours"])),
-        "quest_spend_per_week_usd": round(w(s3["quest_cost"])),
-        "quest_cost_per_late_avoided_usd": round(s3["quest_cost"] / quest_avoided, 2) if quest_avoided > 0 else None,
-        "plan_net_per_week_usd": round(w(s3["avoided"] * v - s3["quest_cost"])),
-        "blanket_avoided_per_week": round(w(s3["blanket_avoided"])),
-        "blanket_spend_per_week_usd": round(w(s3["blanket_cost"])),
-        "blanket_cost_per_late_avoided_usd": round(s3["blanket_cost"] / s3["blanket_avoided"], 2),
-        "blanket_net_per_week_usd": round(w(s3["blanket_avoided"] * v - s3["blanket_cost"])),
+        "value_per_late_avoided_eur": round(v, 2),
+        "orders_per_week": round(orders),
+        "late_per_week_before": round(late),
+        "late_pct_before": round(100 * late / orders, 2),
+        "late_pct_after": round(100 * (late - avoided[3]) / orders, 2),
+        "avoided_per_week_merchants": round(avoided[0]),
+        "avoided_per_week_refusals": round(avoided[1] - avoided[0]),
+        "avoided_per_week_stacking": round(stack_avoided),
+        "avoided_per_week_quests": round(quest_avoided),
+        "avoided_per_week_total": round(avoided[3]),
+        "rerouted_orders_per_week": round(r["rerouted"]),
+        "reroute_spend_per_week_eur": round(r["reroute_cost"]),
+        "reroute_cost_per_late_avoided_eur": round(r["reroute_cost"] / stack_avoided, 2) if stack_avoided > 0 else None,
+        "quest_courier_hours_per_week": round(r["quest_hours"]),
+        "quest_spend_per_week_eur": round(r["quest_cost"]),
+        "quest_cost_per_late_avoided_eur": round(r["quest_cost"] / quest_avoided, 2) if quest_avoided > 0 else None,
+        "plan_spend_per_week_eur": round(spend),
+        "plan_net_per_week_eur": round(avoided[3] * v - spend),
+        "free_levers_net_per_week_eur": round(avoided[1] * v),
+        "blanket_avoided_per_week": round(r["blanket_avoided"]),
+        "blanket_spend_per_week_eur": round(r["blanket_cost"]),
+        "blanket_cost_per_late_avoided_eur": round(r["blanket_cost"] / r["blanket_avoided"], 2) if r["blanket_avoided"] > 0 else None,
+        "blanket_net_per_week_eur": round(r["blanket_avoided"] * v - r["blanket_cost"]),
     }
 
 
-def sensitivity(mh, bins, curve, stress_load):
-    """Each assumption at 50% and 150%: does the recommendation still hold?"""
+def sensitivity(s, b, curve, stress):
+    """Each assumption at 50% and 150%: what happens to the plan and to the targeted-vs-blanket comparison?"""
     rows = []
     for name in sensitivity_names():
         for factor in (0.5, 1.5):
             p = defaults()
             p[name] = p[name] * factor
-            if name.endswith("share") or name == "batch_courier_saving":
-                p[name] = min(p[name], 0.95)
-            r = plan(mh, bins, curve, p, stress_load)
-            quest = r["quest_cost_per_late_avoided_usd"]
+            if name.endswith("share") or name == "stack_precision":
+                p[name] = min(p[name], 1.0)
+            r = plan(s, b, curve, p, stress)
+            q, bl = r["quest_cost_per_late_avoided_eur"], r["blanket_cost_per_late_avoided_eur"]
             rows.append(dict(assumption=name, setting=f"{int(factor * 100)}%", value=round(p[name], 3),
                              late_pct_after=r["late_pct_after"], avoided_per_week=r["avoided_per_week_total"],
-                             quest_spend_per_week=r["quest_spend_per_week_usd"], plan_net_per_week=r["plan_net_per_week_usd"],
-                             quest_cost_per_late=quest, blanket_cost_per_late=r["blanket_cost_per_late_avoided_usd"],
-                             targeted_beats_blanket=bool(quest is not None and quest < r["blanket_cost_per_late_avoided_usd"]
-                                                         and r["plan_net_per_week_usd"] > r["blanket_net_per_week_usd"])))
+                             spend_per_week=r["plan_spend_per_week_eur"], plan_net_per_week=r["plan_net_per_week_eur"],
+                             reroute_cost_per_late=r["reroute_cost_per_late_avoided_eur"], quest_cost_per_late=q,
+                             blanket_cost_per_late=bl,
+                             targeted_beats_blanket=bool(q is not None and bl is not None and q < bl)))
     return pd.DataFrame(rows)
 
 
 def main():
-    mh, bins = load_tables()
-    curve = response_curve(bins)
+    s, b = load_tables()
+    curve = load_curves(s)
     k = knee(curve)
     stress = k["load"]
     result = {"knee": k, "stress_load": stress, "assumptions": ASSUMPTIONS, "curve": curve,
-              "plan": plan(mh, bins, curve, defaults(), stress)}
-    sens = sensitivity(mh, bins, curve, stress)
+              "plan": plan(s, b, curve, defaults(), stress)}
+    sens = sensitivity(s, b, curve, stress)
     sens.to_csv("data/results/sensitivity.csv", index=False)
-    result["sensitivity_holds"] = f"{int(sens.targeted_beats_blanket.sum())} of {len(sens)}"
+    result["sensitivity_targeted_beats_blanket"] = f"{int(sens.targeted_beats_blanket.sum())} of {len(sens)}"
     json.dump(result, open("data/sizing.json", "w"), indent=1)
-    print("Knee of the response curve:", json.dumps(k))
+    print("Knee of the late-rate curve:", json.dumps(k))
     print(json.dumps(result["plan"], indent=1))
     print("\nSensitivity (each assumption at 50% / 150%):")
     print(sens.to_string(index=False))
