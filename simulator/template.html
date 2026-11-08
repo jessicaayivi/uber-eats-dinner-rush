@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dinner Rush Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  /* Layout: control rail on the left, outcomes (tiles, heatmap, lever bars) on the right; stacks on phones. */
+  --ink: #171B22;
+  --muted: #555D6B;
+  --paper: #F2F3EF;
+  --panel: #FFFFFF;
+  --line: #DCDED7;
+  --accent: #B5600A;        /* the dinner rush */
+  --accent-soft: #F6E3CB;
+  --cool: #2C5FC9;          /* after the plan */
+  --good: #1F7A4D;
+  --bad: #B3261E;
+  --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #ECEDEA; --muted: #A7ADB8; --paper: #14171C; --panel: #1C2027; --line: #313641;
+    --accent: #F0A24A; --accent-soft: #3A2A17; --cool: #7FA6F5; --good: #5CC491; --bad: #F08A80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #ECEDEA; --muted: #A7ADB8; --paper: #14171C; --panel: #1C2027; --line: #313641;
+  --accent: #F0A24A; --accent-soft: #3A2A17; --cool: #7FA6F5; --good: #5CC491; --bad: #F08A80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 22px; }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 24px; border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 4vw, 40px); line-height: 1.05; margin: 0; letter-spacing: -0.5px; text-wrap: balance; }
+.kicker { font-size: 13px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+.byline { color: var(--muted); font-size: 14px; max-width: 46ch; margin: 0; }
+.note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 14px; margin: 0; max-width: 90ch; }
+.grid { display: grid; grid-template-columns: 330px 1fr; gap: 22px; align-items: start; }
+@media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.controls { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 12px; }
+.controls h2, .out h2 { font-family: var(--display); font-size: 17px; font-weight: 700; margin: 0; }
+.lever { display: flex; flex-direction: column; gap: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+.lever .step { font-family: var(--display); font-weight: 800; color: var(--accent); margin-right: 6px; }
+.lever p { margin: 0; color: var(--muted); font-size: 13px; }
+label.row { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+label.row output { font-variant-numeric: tabular-nums; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+input:focus-visible, button:focus-visible, select:focus-visible { outline: 3px solid var(--cool); outline-offset: 2px; }
+select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.out { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 620px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.tile .lab { font-size: 13px; color: var(--muted); }
+.tile .val { font-family: var(--display); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile .sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; width: fit-content; }
+.pill.good { color: var(--good); border: 1px solid var(--good); }
+.pill.bad { color: var(--bad); border: 1px solid var(--bad); }
+.head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; padding: 6px 12px; border: 0; background: var(--panel); color: var(--ink); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.heat-wrap { overflow-x: auto; }
+table.heat { border-collapse: separate; border-spacing: 3px; font-size: 12px; font-variant-numeric: tabular-nums; min-width: 640px; width: 100%; }
+table.heat th { font-weight: 500; color: var(--muted); padding: 2px 4px; }
+table.heat th[scope=row] { text-align: left; white-space: nowrap; }
+table.heat td { text-align: center; padding: 7px 0; border-radius: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bar { display: grid; grid-template-columns: 200px 1fr 120px; gap: 12px; align-items: center; font-size: 14px; }
+@media (max-width: 620px) { .bar { grid-template-columns: 1fr; gap: 4px; } }
+.track { background: var(--paper); border-radius: 5px; height: 22px; position: relative; overflow: hidden; }
+.fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; transition: width .25s; }
+@media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+.bar .num { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 620px) { .compare { grid-template-columns: 1fr; } }
+.compare .panel h3 { margin: 0 0 6px; font-family: var(--display); font-size: 16px; }
+.compare dl { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; font-size: 14px; }
+.compare dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.compare dt { color: var(--muted); }
+footer { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; max-width: 100ch; }
+footer p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <p class="kicker">Uber Eats Belgium · marketplace case</p>
+    <h1>Dinner Rush Simulator</h1>
+  </div>
+  <p class="byline">Move the levers and see what happens to lost orders, delivery reliability and the weekly P&amp;L across Brussels, Antwerp, Ghent and Liège. By Jessica Ayivi.</p>
+</header>
+<p class="note">Runs on a simulated marketplace (4 cities, 4 weeks, 1,568 city-hours, ~223k orders), not Uber data. The economics are anchored on Uber’s Q3 2026 Delivery figures. The method is meant to be rerun on real data.</p>
+
+<div class="grid">
+<aside class="panel controls" aria-label="Levers">
+  <h2>Levers</h2>
+  <label class="row" for="city">City <select id="city"><option value="-1">All four cities</option><option value="0">Brussels</option><option value="1">Antwerp</option><option value="2">Ghent</option><option value="3">Liège</option></select></label>
+
+  <div class="lever">
+    <div><span class="step">1</span><b>Rebalance shifts</b></div>
+    <p>Share of each stressed hour’s courier gap filled by hours moved from idle off-peak slots, at no cost.</p>
+    <label class="row" for="shift">Gap filled <output id="shiftOut"></output></label>
+    <input id="shift" type="range" min="0" max="50" step="5" value="25">
+  </div>
+
+  <div class="lever">
+    <div><span class="step">2</span><b>Batching and tighter radius</b></div>
+    <p>Deliveries per courier-hour when utilisation passes 85%. Today: 2.1.</p>
+    <label class="row" for="cap">Deliveries per hour <output id="capOut"></output></label>
+    <input id="cap" type="range" min="2.1" max="2.6" step="0.05" value="2.3">
+  </div>
+
+  <div class="lever">
+    <div><span class="step">3</span><b>Targeted quests</b></div>
+    <p>Paid only on extra hours, only where utilisation after steps 1–2 stays above the trigger. 30% of spend goes to couriers who would have come anyway.</p>
+    <label class="row" for="thr">Trigger: utilisation above <output id="thrOut"></output></label>
+    <input id="thr" type="range" min="85" max="150" step="5" value="110">
+    <label class="row" for="qshare">Extra gap filled <output id="qshareOut"></output></label>
+    <input id="qshare" type="range" min="0" max="60" step="5" value="35">
+    <label class="row" for="qeur">Pay per extra hour <output id="qeurOut"></output></label>
+    <input id="qeur" type="range" min="0" max="15" step="1" value="5">
+  </div>
+
+  <div class="lever">
+    <div><b>Economics</b></div>
+    <label class="row" for="take">Net revenue per order <output id="takeOut"></output></label>
+    <input id="take" type="range" min="15" max="25" step="1" value="20">
+    <p>Uber’s Q3 2026 Delivery revenue ÷ gross bookings ≈ 19%. Basket: €27.</p>
+    <label class="check" for="blanket"><input id="blanket" type="checkbox" checked> Compare with a blanket weekend boost</label>
+  </div>
+</aside>
+
+<main class="out">
+  <section class="tiles" aria-label="Weekly outcome" aria-live="polite">
+    <div class="tile"><span class="lab">Unfulfilled orders</span><span class="val" id="kUnf"></span><span class="sub" id="kUnfSub"></span></div>
+    <div class="tile"><span class="lab">Orders saved per week</span><span class="val" id="kRec"></span><span class="sub" id="kRecSub"></span></div>
+    <div class="tile"><span class="lab">Bookings recovered per year</span><span class="val" id="kGb"></span><span class="sub">orders saved × €27 × 52</span></div>
+    <div class="tile"><span class="lab">Late orders in stressed hours</span><span class="val" id="kLate"></span><span class="sub" id="kLateSub"></span></div>
+    <div class="tile"><span class="lab">Incentive spend per week</span><span class="val" id="kCost"></span><span class="sub" id="kCostSub"></span></div>
+    <div class="tile"><span class="lab">Net revenue impact per week</span><span class="val" id="kNet"></span><span id="kNetPill" class="pill"></span></div>
+  </section>
+
+  <section class="panel" aria-labelledby="heatTitle">
+    <div class="head">
+      <h2 id="heatTitle">Courier utilisation by day and hour</h2>
+      <div class="seg" role="group" aria-label="Show utilisation">
+        <button type="button" id="vBefore" aria-pressed="true">Today</button>
+        <button type="button" id="vAfter" aria-pressed="false">With the plan</button>
+      </div>
+    </div>
+    <div class="heat-wrap"><table class="heat" id="heat"></table></div>
+    <div class="legend">
+      <span><i style="background:var(--line)"></i>Under 85%: healthy</span>
+      <span><i id="lg1"></i>85–100%: stretched</span>
+      <span><i id="lg2"></i>100–120%: breaking</span>
+      <span><i id="lg3"></i>Over 120%: failing</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="barTitle">
+    <h2 id="barTitle" style="margin-bottom:14px">Where the saved orders come from (per week)</h2>
+    <div class="bars" id="bars"></div>
+  </section>
+
+  <section class="compare" id="compare" aria-label="Plan versus blanket boost">
+    <div class="panel"><h3>The plan (levers 1–3)</h3><dl id="cPlan"></dl></div>
+    <div class="panel"><h3>Blanket weekend boost</h3><dl id="cBlanket"></dl></div>
+  </section>
+
+  <footer>
+    <p><b>Model.</b> Utilisation = orders ÷ (couriers online × deliveries per hour). Above 85%, unfulfilled and late rates rise along the response curve estimated from the four weeks of data. Levers act only on stressed hours (where couriers fall short of 85% utilisation). 60% of a targeted gap shows up in the blanket comparison, which pays €4 an hour to every courier on Fri–Sun dinners (17:00–22:00).</p>
+    <p><b>Sources.</b> Simulated marketplace and SQL by Jessica Ayivi. Uber Q3 2026 results for the Delivery revenue-to-bookings ratio.</p>
+  </footer>
+</main>
+</div>
+
+<script>
+const D = __DATA__; // rows: [city, dow (0=Mon), hour, rain, requested, couriers, unfulfilled, late]
+const CITIES = ["Brussels","Antwerp","Ghent","Liège"];
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const HOURS = [10,11,12,13,14,15,16,17,18,19,20,21,22,23];
+const CAP0 = 2.1, TGT = 0.85, WEEKS = 4, AOV = 27, LEAK = 0.30, SHOW = 0.6, BOOST = 4;
+const unfRate = u => Math.min(0.35, 0.015 + 0.55 * Math.pow(Math.max(0, u - 0.85), 1.3));
+const lateRate = u => Math.min(0.6, 0.06 + 0.9 * Math.pow(Math.max(0, u - 0.85), 1.1));
+const rows = D.map(r => {
+  const [c, dow, h, rain, req, cour, unf, late] = r;
+  const gap = Math.max(0, Math.ceil(req / (CAP0 * TGT)) - cour);
+  return {c, dow, h, rain, req, cour, unf, late, gap};
+});
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 0) => n.toLocaleString("en-GB", {maximumFractionDigits: d, minimumFractionDigits: d});
+const eur = n => (n < 0 ? "−€" : "€") + (Math.abs(n) >= 1e6 ? fmt(Math.abs(n) / 1e6, 2) + "M" : Math.abs(n) >= 1e4 ? fmt(Math.abs(n) / 1e3, 1) + "k" : fmt(Math.abs(n)));
+let view = "before";
+
+function simulate(p) {
+  const out = {req: 0, unf0: 0, r1: 0, r2: 0, r3: 0, cost: 0, late0: 0, late3: 0, util: {}, bl: {rec: 0, cost: 0}};
+  for (const r of rows) {
+    if (p.city >= 0 && r.c !== p.city) continue;
+    out.req += r.req; out.unf0 += r.unf;
+    let uAfter = r.req / (r.cour * CAP0);
+    if (r.gap > 0) {
+      const c1 = r.cour + p.shift * r.gap;
+      const u1 = r.req / (c1 * CAP0);
+      const u2 = r.req / (c1 * p.cap);
+      const add = (u2 > p.thr) ? p.qshare * r.gap : 0;
+      const u3 = r.req / ((c1 + add) * p.cap);
+      out.r1 += Math.max(0, r.unf - r.req * unfRate(u1));
+      out.r2 += Math.max(0, r.unf - r.req * unfRate(u2));
+      out.r3 += Math.max(0, r.unf - r.req * unfRate(u3));
+      out.cost += p.qeur * (1 + LEAK) * add;
+      out.late0 += r.late;
+      out.late3 += r.req * (1 - unfRate(u3)) * lateRate(u3);
+      uAfter = u3;
+    }
+    if (r.dow >= 4 && r.h >= 17 && r.h <= 21) {
+      const add = SHOW * r.gap;
+      const u = r.req / ((r.cour + add) * CAP0);
+      out.bl.rec += Math.max(0, r.unf - r.req * unfRate(u));
+      out.bl.cost += BOOST * (r.cour + add);
+    }
+    const k = r.dow + "-" + r.h;
+    const cell = out.util[k] || (out.util[k] = {req: 0, cap0: 0, cap1: 0});
+    cell.req += r.req; cell.cap0 += r.cour * CAP0; cell.cap1 += r.req / uAfter;
+  }
+  return out;
+}
+
+function shade(u) {
+  if (u < 0.85) return {bg: "var(--line)", fg: "var(--muted)"};
+  if (u < 1.0) return {bg: "color-mix(in srgb, var(--accent) 35%, var(--panel))", fg: "var(--ink)"};
+  if (u < 1.2) return {bg: "color-mix(in srgb, var(--accent) 70%, var(--panel))", fg: "var(--ink)"};
+  return {bg: "var(--bad)", fg: "var(--panel)"};
+}
+
+function render() {
+  const p = {
+    city: +$("city").value, shift: $("shift").value / 100, cap: +$("cap").value,
+    thr: $("thr").value / 100, qshare: $("qshare").value / 100, qeur: +$("qeur").value, take: $("take").value / 100
+  };
+  $("shiftOut").textContent = fmt(p.shift * 100) + "%";
+  $("capOut").textContent = fmt(p.cap, 2);
+  $("thrOut").textContent = fmt(p.thr * 100) + "%";
+  $("qshareOut").textContent = fmt(p.qshare * 100) + "%";
+  $("qeurOut").textContent = "€" + fmt(p.qeur);
+  $("takeOut").textContent = fmt(p.take * 100) + "%";
+
+  const s = simulate(p);
+  const w = x => x / WEEKS;
+  const rec = w(s.r3), cost = w(s.cost);
+  const unfBefore = 100 * s.unf0 / s.req, unfAfter = 100 * (s.unf0 - s.r3) / s.req;
+  $("kUnf").textContent = fmt(unfBefore, 1) + "% → " + fmt(unfAfter, 1) + "%";
+  $("kUnfSub").textContent = "share of orders requested";
+  $("kRec").textContent = fmt(rec);
+  $("kRecSub").textContent = "of " + fmt(w(s.unf0)) + " lost today";
+  $("kGb").textContent = eur(rec * AOV * 52);
+  const lateCut = s.late0 ? 100 * (1 - s.late3 / s.late0) : 0;
+  $("kLate").textContent = "−" + fmt(lateCut) + "%";
+  $("kLateSub").textContent = fmt(w(s.late0)) + " → " + fmt(w(s.late3)) + " a week";
+  $("kCost").textContent = eur(cost);
+  $("kCostSub").textContent = s.r3 - s.r2 > 0.5 ? eur(cost / w(s.r3 - s.r2)) + " per order quests save" : "quests not triggered";
+  const net = rec * AOV * p.take - cost;
+  $("kNet").textContent = (net >= 0 ? "+" : "") + eur(net);
+  const pill = $("kNetPill");
+  pill.className = "pill " + (net >= 0 ? "good" : "bad");
+  pill.textContent = net >= 0 ? "Pays for itself" : "Costs more than it earns";
+
+  // heatmap
+  let html = "<thead><tr><th></th>" + HOURS.map(h => `<th scope="col">${h}h</th>`).join("") + "</tr></thead><tbody>";
+  for (let d = 0; d < 7; d++) {
+    html += `<tr><th scope="row">${DAYS[d]}</th>`;
+    for (const h of HOURS) {
+      const c = s.util[d + "-" + h];
+      const u = c ? c.req / (view === "before" ? c.cap0 : c.cap1) : 0;
+      const sh = shade(u);
+      html += `<td style="background:${sh.bg};color:${sh.fg}" title="${DAYS[d]} ${h}:00 · ${fmt(u * 100)}%">${fmt(u * 100)}</td>`;
+    }
+    html += "</tr>";
+  }
+  $("heat").innerHTML = html + "</tbody>";
+  $("heat").setAttribute("aria-label", "Average utilisation in percent, " + (view === "before" ? "today" : "with the plan"));
+
+  // lever bars
+  const parts = [
+    ["1 · Rebalance shifts", w(s.r1), "var(--cool)"],
+    ["2 · Batching and radius", w(s.r2 - s.r1), "var(--cool)"],
+    ["3 · Targeted quests", w(s.r3 - s.r2), "var(--accent)"],
+    ["Still lost", w(s.unf0 - s.r3), "var(--line)"]
+  ];
+  const max = Math.max(...parts.map(x => x[1]), 1);
+  $("bars").innerHTML = parts.map(([l, v, c]) =>
+    `<div class="bar"><span>${l}</span><div class="track"><div class="fill" style="width:${(100 * v / max).toFixed(1)}%;background:${c}"></div></div><span class="num">${fmt(v)} orders</span></div>`).join("");
+
+  // comparison
+  const blRec = w(s.bl.rec), blCost = w(s.bl.cost), blNet = blRec * AOV * p.take - blCost;
+  $("cPlan").innerHTML = `<dt>Orders saved / week</dt><dd>${fmt(rec)}</dd><dt>Incentive spend / week</dt><dd>${eur(cost)}</dd><dt>Net revenue impact / week</dt><dd>${(net >= 0 ? "+" : "") + eur(net)}</dd>`;
+  $("cBlanket").innerHTML = `<dt>Orders saved / week</dt><dd>${fmt(blRec)}</dd><dt>Incentive spend / week</dt><dd>${eur(blCost)}</dd><dt>Spend per saved order</dt><dd>${blRec ? eur(blCost / blRec) : "–"}</dd><dt>Net revenue impact / week</dt><dd>${(blNet >= 0 ? "+" : "") + eur(blNet)}</dd>`;
+  $("compare").style.display = $("blanket").checked ? "" : "none";
+}
+
+["city","shift","cap","thr","qshare","qeur","take","blanket"].forEach(id => $(id).addEventListener("input", render));
+$("vBefore").addEventListener("click", () => { view = "before"; $("vBefore").setAttribute("aria-pressed","true"); $("vAfter").setAttribute("aria-pressed","false"); render(); });
+$("vAfter").addEventListener("click", () => { view = "after"; $("vAfter").setAttribute("aria-pressed","true"); $("vBefore").setAttribute("aria-pressed","false"); render(); });
+$("lg1").style.background = shade(0.9).bg; $("lg2").style.background = shade(1.1).bg; $("lg3").style.background = shade(1.3).bg;
+render();
+</script>
+</body>
+</html>

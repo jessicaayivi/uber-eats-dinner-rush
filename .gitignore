@@ -1,0 +1,4 @@
+data/marketplace.db
+data/sizing.json
+__pycache__/
+.venv/
