@@ -1,5 +1,6 @@
-# Archive: the first, simulated version
+# Archive: earlier versions of this case
 
-Before November 2026 this case ran on a **simulated** marketplace (`generate.py`, seed 42: 4 Belgian cities × 4 weeks, 222,830 invented orders). Its response curve, 85% utilisation threshold and 2.1 deliveries per courier-hour were assumptions, not measurements.
+- **`generate.py`, `marketplace_hourly.csv`**: the first version, a **simulated** marketplace (4 Belgian cities, invented orders). Its response curve, thresholds and productivity were assumptions.
+- **`doordash_version/`**: the second version, on a Kaggle release of DoorDash deliveries (2015) plus an Indian food-delivery dataset. Replaced because the DoorDash data has no promised delivery time. See its README.
 
-The case now runs on real public delivery data (see the main README). These two files are kept only to show where it started. Nothing in the current pipeline reads them.
+The case now runs on Meituan's real food-delivery orders (see the main README). Nothing in the current pipeline reads these files.

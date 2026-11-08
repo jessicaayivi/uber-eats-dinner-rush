@@ -1,141 +1,126 @@
-# Winning the Dinner Rush: a delivery-marketplace case on real data
+# Winning the Dinner Rush: SLA root causes in a real food-delivery network
 
 **Jessica Ayivi** · Strategy & Operations · [jessicaayivi1@gmail.com](mailto:jessicaayivi1@gmail.com)
 
-When does courier supply fall behind demand in a food-delivery marketplace, what does it cost, and which levers fix it profitably? I analysed **176,448 real DoorDash deliveries** to answer that, and this is how I would apply the method at Uber Eats Belgium.
+Why do food deliveries miss the time promised to the customer, and which marketplace levers fix it profitably? I analysed **538,689 real orders from Meituan**, each with its promised delivery time and every dispatch step, and this is how I would apply the method at Uber Eats Belgium.
 
 - 🎛️ **Interactive simulator:** [jessicaayivi.github.io/uber-eats-dinner-rush](https://jessicaayivi.github.io/uber-eats-dinner-rush/)
 - 🧮 **Analysis:** SQL in [`sql/analysis.sql`](sql/analysis.sql), lever model in [`src/sizing.py`](src/sizing.py), every assumption in [`src/assumptions.py`](src/assumptions.py)
-- 📊 **Deck:** [Winning the Dinner Rush](https://claude.ai/artifact/CSPXkXz3a7duPuGExZo2zm) (being updated to the real-data version)
+- 📊 **Deck:** [Winning the Dinner Rush](https://claude.ai/artifact/CSPXkXz3a7duPuGExZo2zm) (being updated to this version)
 
-> **About the data.** The deliveries are real but public and old: a Kaggle release of DoorDash orders from six anonymised US markets, 21 Jan – 17 Feb 2015, with noise added by the publisher. A second public dataset (Indian cities, 2022) supplies the weather and batching effects. **None of this is Uber data or Belgian data.** Money is in US dollars. The only Uber figure used is public: Delivery revenue ÷ gross bookings ≈ 19% (Q3 2026).
+> **About the data.** Meituan's public research dataset (INFORMS TSL Research Challenge): one Chinese city, 23 business districts, Monday 17 – Monday 24 October 2022, with anonymised IDs and shifted coordinates. **It is not Uber data and not Belgian data.** It has no prices, fees, pay or weather, so every euro figure here is a labelled assumption. Licence CC BY-NC 4.0; raw data is not redistributed. *This research was supported by data provided by Meituan.*
 
 ## Key findings
 
 | | |
 |---|---|
-| **Service degrades past a measurable threshold** | Late deliveries (over 60 minutes) sit at ~8% while there are fewer than 0.8 outstanding orders per on-shift dasher. The curve bends at **1.2**: below it, each extra 0.1 of load adds 0.8 points of lateness; above it, 4.6 points. At 2.0+ more than half of deliveries are late. Driving distance stays flat across load levels, so this is a supply effect, not longer trips. |
-| **Weekend dinners break** | Fri–Sun 17:00–21:00 is 26% of orders but **45% of late deliveries** (33% late vs 12–18% elsewhere). Worst hours: Sunday 18:00 (46% late) and Friday 19:00 (43%). |
-| **Stress is routine, not a rare spike** | Half of all orders are placed in market-hours above the 1.2 knee; those hours hold 71% of late deliveries. The worst 10% of market-hours hold 58% of late orders (and 33% of orders). |
-| **There is little idle capacity to move** | Quiet hours (load under 0.8) hold ~400 idle dasher-hours a week against a ~2,800-hour gap in stressed hours: **15%**, and only 3–8% in the three largest markets. |
-| **Dashers are less productive than assumed** | ~1.5 deliveries per dasher-hour (Little's law on the data), not the 2.1 the simulated version assumed. |
-| **Restaurants are a second bottleneck** | Orders sent to restaurants through the slower channel (7.4 vs 4.2 min to place) are late 6 points more often than their load explains; Japanese (+7 pts) and pizza (+4 pts) run late, Mexican and sandwich run early. |
-| **Bad weather and batching (Indian data)** | Like-for-like, storms add 17% to delivery time, fog 28%, traffic jams 41%. A second order in the same trip adds only **11%**; three or more add 47–60%. |
-| **The obvious fix doesn't pay** | A blanket $4/hour bonus for every dasher on weekend dinners costs **~$40 per late delivery avoided**. |
+| **The SLA is broken on 1 order in 7** | 14.6% of orders arrive after the promised time (4.6% by more than 5 minutes). Promises average 35 minutes; deliveries take a median 28. |
+| **Most misses are near-misses** | **Two-thirds of late orders miss by 5 minutes or less**, nearly half by 3 minutes or less. Small, targeted time savings convert a lot of late orders. |
+| **It breaks at the peaks** | Lunch (11:00, 17.6% late) and above all dinner (17:00–18:00, 19%). Friday 17:00–18:00 reaches 21–22%. The worst 10% of district-half-hours hold 61% of late orders. |
+| **Root cause: the last mile and the pickup** | For each late order I compared every stage with on-time orders in the same district, hour and distance. The biggest overrun is the **last mile in 55%** of late orders, the **restaurant pickup in 34%**, waiting for dispatch in 7%, courier refusals in 3%. |
+| **Stacking orders is what makes the last mile late** | Like for like (same district and hour), a 2nd order in a courier's run adds 5 points of lateness and a 3rd adds 10 (+2.2 and +3.7 minutes of last mile). Beyond 3 it barely gets worse. |
+| **…while couriers sit idle** | At every lunch-peak dispatch snapshot (11:25–11:30, all 8 days), **30% of the ~2,600 candidate couriers carry no order**, against ~660 orders waiting. The peak is a matching problem more than a headcount problem. |
+| **A few restaurants drive pickup delays** | The slowest 10% of merchants (by pickup overrun) take 7.5% of orders but 10% of late ones: 19% late vs 14%, and pickups take 4.4 minutes longer. |
+| **Refusals are expensive** | 10% of orders are refused by a courier at least once; they are late 23% of the time vs 13.5%. Districts where refusals are common (12–19% of orders) run 16–20% late; districts with almost none run 3–16% (a correlation, worth a test). |
+| **Under load, promises stretch before they break** | Lateness climbs from 11% to 16% as couriers go from ~1.25 to 2 orders each, then flattens: beyond ~2 the platform absorbs load by promising later (36 → 42 minutes). |
 
 ## Recommendation
 
-1. **Rebalance shifts** from quiet hours into forecast stress hours. Free, but small: ~160 fewer late deliveries a week.
-2. **Batch pairs, never more**, in stressed hours: ~280 fewer late deliveries a week at no cost, with a hard cap of two orders per trip.
-3. **Targeted quests** above a load of 1.5: ~440 fewer late deliveries a week for ~$2,600, i.e. **~$6 per late delivery avoided, a seventh of the blanket bonus**.
+1. **Merchant fixes (account management):** give account managers the ranked list of the slowest merchants; fixing half their pickup overrun avoids **~3,100 late deliveries a week**, at no platform cost.
+2. **Fewer refusals (dispatch / product):** better matching and acceptance nudges; removing 30% of refusal delay avoids **~520 a week**.
+3. **Stacking cap, targeted:** don't make an at-risk order the 3rd+ in a run when an idle courier is nearby. Avoids **~5,100 a week**, but each avoided late delivery costs **~€34** in extra trips.
+4. **Targeted quests** where couriers carry more than 2.5 orders each: **~1,600 a week at ~€13** per late delivery avoided.
 
-**Impact:** late deliveries 19.5% → 17.5%, ~890 fewer a week (−10%), late deliveries in stressed hours −15%.
+**Impact:** late deliveries 14.8% → 12.6% (standard-week basis), ~10,400 fewer a week (−15%).
 
-**The honest caveat:** quests only pay if a late delivery costs more than ~$6 of future net revenue (about 1.2 lost orders at a $27 basket and 19% take). With my default assumption of half a lost order ($2.57), steps 1–2 earn ~+$1,150 a week, and adding quests turns the plan slightly negative (−$360 a week). So: **roll out steps 1–2, run quests only inside the test, and never pay a blanket bonus.**
+**Compared with a blanket bonus** for every courier at lunch and dinner peaks: ~2,000 late deliveries avoided for ~€249k a week, **~€124 each**. Targeted levers beat it in all 26 sensitivity cases.
 
-**How to prove it:** a switchback test (market × 2-hour blocks, randomised daily, 4 weeks), because dashers serve both arms of a user-level A/B test. The first thing to measure is the retention cost of a late delivery, because it decides whether quests pay. Guardrails: dasher earnings per hour, dasher churn, cancellations, food quality on paired orders.
+**The honest caveat:** at my default value of a late delivery (half a lost future order × €27 × 19% ≈ €2.57), only the free levers pay (~+€9,300 a week). Quests pay only if a late delivery costs ~2.5 lost orders; the stacking cap only at ~6.6. So: **roll out 1–2 now, test 3–4 in a switchback experiment** (district × 2-hour blocks), and measure first what a late delivery really costs in retention and refunds. A second test worth running: a 2–3 minute promise buffer on at-risk orders, given that most misses are near-misses (its conversion cost cannot be measured in this data).
 
-## What changed from the simulated version
+## What changed from earlier versions
 
-The first version of this case ran on invented data ([`archive/`](archive/)). Real data changed the story:
+This case started on simulated Belgian data, then moved to DoorDash + Indian Kaggle data (both in [`archive/`](archive/)). Each step made it more real:
 
-| | Simulated version | Real data |
-|---|---|---|
-| Pain metric | Unfulfilled orders, 5.1% | Late deliveries (>60 min), 19.5%. The data only contains delivered orders. |
-| Breaking point | Assumed: 85% utilisation | Measured: knee at 1.2 outstanding orders per dasher, gradual then steep |
-| Worst 10% of hours | 64% of lost orders | 58% of late orders |
-| Deliveries per courier-hour | 2.1 (assumed) | ~1.5 (measured) |
-| Free rebalancing | 25% of the gap, assumed | Idle slack covers 15% of the gap |
-| Plan impact | 5.1% → 2.2% unfulfilled (−57%) | 19.5% → 17.5% late (−10%) |
-| Blanket boost | ~€35 per saved order | ~$40 per late delivery avoided |
-| Targeted quests | ~€660/week, roughly break-even | ~$2,600/week, pay only if a late delivery is worth > ~$6 |
-| Rain | Demand +7%, couriers −14% (invented) | Not in the DoorDash data. Indian data: storms +17% delivery time; supply effect unmeasured |
-
-The direction of the recommendation survived (targeted beats blanket, free levers first); the size of the prize is much smaller and the case for paid incentives is weaker.
-
-## Data sources
-
-| Dataset | What it gives | Licence on Kaggle | In this repo |
+| | Simulated | DoorDash (2015) | Meituan (2022, now) |
 |---|---|---|---|
-| [DoorDash ETA Prediction](https://www.kaggle.com/datasets/dharun4772/doordash-eta-prediction) (dharun4772) | 197,428 deliveries, 6 US markets, Jan–Feb 2015, with dashers on shift, busy dashers and outstanding orders at order time | MIT, but the data card describes it as a DoorDash subset with added noise | Raw file **not committed**; aggregated tables only |
-| [Food Delivery Dataset](https://www.kaggle.com/datasets/gauravmalik26/food-delivery-dataset) (gauravmalik26) | 45,593 deliveries in Indian cities, 2022: weather, traffic, festivals, multiple deliveries | "Other", terms not stated | Raw file **not committed**; effect table only |
+| Defect | Unfulfilled orders (invented) | Delivered > 60 min (threshold I chose) | **Delivered after the promised time** (the real SLA) |
+| Late rate | 5.1% unfulfilled | 19.5% | **14.6%** |
+| Root cause | Not measurable | Partly (load only) | **Per order, per stage** |
+| Batching | Assumed | Borrowed from Indian data | **Measured like for like** |
+| Main lever | Rebalance + quests | Rebalance + batching + quests | **Merchants, refusals, stacking**; quests second |
+| Blanket bonus | €35 per saved order | $40 per late avoided | **€124 per late avoided** |
+| Impact | −57% | −10% | **−15%** |
 
-`bash src/download_data.sh` fetches both (public datasets download without a Kaggle token).
+## Data
 
-Caveats: the dasher and order counts are local (within 10 miles of the store), so dashers per market-hour are estimated with Little's law (orders × hours per delivery ÷ load ratio). The Indian weather categories are almost exactly equal in size, which suggests that dataset is partly synthetic; treat it as directional.
-
-## Data cleaning (DoorDash)
-
-| Step | Rows |
+| | |
 |---|---|
-| Raw | 197,428 |
-| Missing timestamps | −7 |
-| Missing market | −987 |
-| Missing dasher / outstanding-order counts | −16,194 |
-| Negative counts (noise) | −81 |
-| Zero dashers on shift | −3,595 |
-| Delivery time outside 5–180 min (180 > the 99.9th percentile) | −116 |
-| **Clean** | **176,448** |
+| Source | [Meituan-INFORMS-TSL-Research-Challenge](https://github.com/meituan/Meituan-INFORMS-TSL-Research-Challenge) (Meituan, INFORMS Transportation Science & Logistics) |
+| Content | 654,343 waybills (an order gets a new waybill each time a courier refuses it), courier runs ("waves"), and 24 dispatch snapshots with candidate couriers |
+| Per order | created, sent to dispatch, offered, accepted, picked up, delivered; **promised delivery time**; estimated food-ready time; district, merchant, courier; pickup and drop-off coordinates (shifted) |
+| Licence | CC BY-NC 4.0, redistribution not allowed: raw files stay out of Git (`bash src/download_data.sh` fetches them); only aggregated tables are committed and embedded in the simulator |
+| Missing | Prices, fees, courier pay, weather, app sessions (so no conversion or dynamic-fee analysis) |
 
-Timestamps are UTC; **UTC−8** (US/Pacific winter time) puts the peaks at 12:00 and 18:00, where UTC−5 would put lunch at 15:00. Late = over 60 minutes: the "within the hour" promise, at the 80th percentile (p90 = 70 min). Busy dashers exceed on-shift dashers in 23% of rows (publisher noise), so the busy ratio is capped at 1. Full log: [`data/doordash_cleaning.json`](data/doordash_cleaning.json).
+**Cleaning** ([`data/meituan_cleaning.json`](data/meituan_cleaning.json)): 568,546 accepted orders → removed 1 never delivered, 22,181 pre-booked (different promise logic), 7,444 without a food-ready estimate, 212 with timestamps out of order, 19 over 180 minutes → **538,689 orders**. Timestamps are UTC+8 (peaks land at 11:00 and 17:00–18:00). Weekly figures count each weekday once; Monday appears twice in the 8 days, which is why the model's late rate (14.8%) differs slightly from the raw 8-day average (14.6%).
 
 ## Assumptions
 
-Everything the model uses that is not measured in this run, in one place: [`src/assumptions.py`](src/assumptions.py).
+Everything the model uses that is not measured, in one place: [`src/assumptions.py`](src/assumptions.py).
 
 | Input | Value | Source |
 |---|---|---|
-| Late threshold | 60 min | Data: 80th percentile, "within the hour" |
-| Stress threshold | load 1.2 | Data: fitted knee of the response curve |
-| Quiet threshold | load 0.8 | Data: late rate still at its floor |
-| Basket | $27.02 | Data: average subtotal |
-| Batching delay | +11.1% | Data (Indian): second order in the trip, like-for-like |
+| Late | delivered after the promised time | Data |
+| Slow merchants targeted | slowest 10% (50+ orders) by pickup overrun | Data |
+| Stacking cap | 2 orders per run | Data: the 3rd order adds ~5 late points over the 2nd |
 | Net revenue per order | 19% of bookings | Public: Uber Q3 2026, Delivery revenue $5.5B ÷ gross bookings $28.5B |
-| Idle time movable by rebalancing | 50% | Assumption |
-| Orders that can be paired | 20% | Assumption |
-| Courier time saved per paired order | 30% | Assumption (Indian trip times imply up to 44%) |
+| Merchant overrun removed | 50% | Assumption |
+| Refusal delay removed | 30% | Assumption |
+| At-risk orders re-routed | 50% | Assumption |
+| Re-routed orders really at risk | 25% | Assumption |
+| Extra pay per separate trip | €2.50 | Assumption |
 | Gap filled by quests | 35% | Assumption |
-| Quest trigger | load 1.5 | Assumption |
-| Quest pay | $5 per extra hour | Assumption |
-| Quest leakage | 30% | Assumption |
-| Blanket bonus | $4 per online hour, Fri–Sun 17:00–21:00 | Assumption |
-| Gap filled by blanket bonus | 60% | Assumption |
+| Quest trigger | load above 2.5 orders per busy courier | Assumption |
+| Quest pay | €5 per extra hour, 30% leakage | Assumption |
+| Blanket bonus | €4 per busy courier-hour, 11:00–13:00 and 17:00–20:00, 60% of gap shows up | Assumption |
+| Average basket | €27 | Assumption (no prices in the data) |
 | Future orders lost per late delivery | 0.5 | Assumption |
 
 ## Sensitivity
 
-Each assumption at 50% and 150% of its default, everything else unchanged ([`data/results/sensitivity.csv`](data/results/sensitivity.csv)). Default: 17.5% late after the plan, −$361/week, $5.98 of quest spend per late delivery avoided.
+Each assumption at 50% and 150% of its default, everything else unchanged ([`data/results/sensitivity.csv`](data/results/sensitivity.csv)). Default: 12.6% late after the levers, −€169k a week, and €34 / €12.9 / €124 spent per late delivery avoided by the stacking cap / quests / blanket bonus.
 
-| Assumption (default) | At 50%: late after · net/week · quest $/late | At 150%: late after · net/week · quest $/late | Targeted still beats blanket? |
-|---|---|---|---|
-| Idle time moved by rebalancing (0.5) | 17.6% · −$647 · $5.97 | 17.4% · −$158 · $5.97 | Yes |
-| Orders paired (0.2) | 17.7% · −$972 · $5.89 | 17.4% · +$320 · $5.96 | Yes |
-| Courier time saved per paired order (0.3) | 18.2% · −$1,538 · $5.84 | 16.9% · +$852 · $6.03 | Yes |
-| Gap filled by quests (0.35) | 18.0% · +$436 · $5.54 | 17.1% · −$1,270 · $6.59 | Yes |
-| Quest trigger (load 1.5) | 16.5% · −$2,938 · $7.27 | 18.5% · +$1,143 · $3.18 | Yes |
-| Quest pay per hour ($5) | 17.5% · +$957 · $2.99 | 17.5% · −$1,678 · $8.97 | Yes |
-| Quest leakage (0.3) | 17.5% · −$57 · $5.29 | 17.5% · −$665 · $6.67 | Yes |
-| Blanket bonus per hour ($4) | unchanged; blanket costs $19.85 per late avoided | unchanged; $59.56 | Yes |
-| Gap filled by blanket bonus (0.6) | unchanged; blanket costs $66.78 per late avoided | unchanged; $32.08 | Yes |
-| Future orders lost per late delivery (0.5) | 17.5% · −$1,498 · $5.98 | 17.5% · +$777 · $5.98 | Yes |
+| Assumption (default) | At 50%: late after · net/week · € per late (stacking / quests / blanket) | At 150% |
+|---|---|---|
+| Merchant overrun removed (0.5) | 12.89% · −€172k · €34 / €12.5 / €124 | 12.44% · −€167k · €34 / €12.9 / €124 |
+| Refusal delay removed (0.3) | 12.68% · −€170k · €34 / €13.1 / €124 | 12.50% · −€168k · €34 / €12.8 / €124 |
+| At-risk orders re-routed (0.5) | 13.12% · −€88k · €34 / €12.5 / €124 | 12.06% · −€250k · €34 / €13.3 / €124 |
+| Re-routed orders really at risk (0.25) | 12.59% · −€344k · €68 / €12.9 / €124 | 12.59% · −€111k · €23 / €12.9 / €124 |
+| Extra pay per separate trip (€2.50) | 12.59% · −€81k · €17 / €12.9 / €124 | 12.59% · −€256k · €51 / €12.9 / €124 |
+| Gap filled by quests (0.35) | 12.78% · −€161k · €34 / €14.9 / €124 | 12.44% · −€177k · €34 / €13.3 / €124 |
+| Quest trigger (2.5) | 12.59% · −€174k · €34 / €16.4 / €124 | 12.76% · −€157k · €34 / €7.8 / €124 |
+| Quest pay (€5) | 12.59% · −€159k · €34 / €6.5 / €124 | 12.59% · −€179k · €34 / €19.4 / €124 |
+| Quest leakage (0.3) | 12.59% · −€166k · €34 / €11.4 / €124 | 12.59% · −€171k · €34 / €14.4 / €124 |
+| Blanket bonus (€4) | unchanged · blanket €62 | unchanged · blanket €185 |
+| Gap filled by blanket bonus (0.6) | unchanged · blanket €214 | unchanged · blanket €124 |
+| Average basket (€27) | 12.59% · −€182k | 12.59% · −€156k |
+| Future orders lost per late delivery (0.5) | 12.59% · −€182k | 12.59% · −€156k |
 
-**What holds:** targeted quests beat a blanket bonus in all 20 cases (at worst ~$9 vs at best ~$20 per late delivery avoided). **What doesn't:** whether the plan makes money depends on the value of a late delivery, the batching gain and the quest price; that is why the test, not this model, should decide on quests.
+**What holds:** the free levers always pay, and targeted quests beat the blanket bonus in all 26 cases (at worst €19 vs at best €62 per late delivery avoided). **What doesn't:** the paid levers only pay if a late delivery is worth far more than my default; that is the number to measure first.
 
 ## Repository
 
 ```
-src/download_data.sh          fetches both Kaggle datasets into data/raw/ (not committed)
-src/prepare_india.py          weather, traffic, festival and batching effects (Indian data)
-src/prepare_doordash.py       cleans the deliveries, builds market-hour tables and data/doordash.db
-sql/analysis.sql              6 questions: scorecard, when it breaks, response curve, concentration, gap vs slack, merchant check
+src/download_data.sh          fetches the Meituan dataset into data/raw/meituan/ (not committed)
+src/prepare_meituan.py        cleaning, stage times, root causes, slow merchants, stacking cost -> data/meituan.db + aggregated CSVs
+sql/analysis.sql              10 questions: scorecard, hours, root causes, stages, concentration, batching, merchants, refusals, load, idle couriers
 src/run_sql.py                runs every query, saves data/results/<query>.csv
 src/assumptions.py            every non-measured input, with its source
-src/sizing.py                 response curve, levers, blanket comparison, sensitivity -> data/sizing.json
-src/build_simulator.py        injects the data and curve into simulator/template.html
-src/check_simulator.py        runs the simulator's JS model and checks it reproduces sizing.py
+src/sizing.py                 load curves, levers, blanket comparison, sensitivity -> data/sizing.json
+src/build_simulator.py        injects the aggregated tables and curves into simulator/template.html
+src/check_simulator.py        runs the simulator's JS model and checks it reproduces sizing.py (also in CI)
 src/run_all.sh                the whole pipeline
 simulator/index.html          built simulator, published by .github/workflows/pages.yml
-archive/                      the first, simulated version (not used)
+archive/                      the simulated and the DoorDash versions (not used)
 ```
 
 ## Reproduce
@@ -147,4 +132,4 @@ bash src/run_all.sh
 
 ## Limitations
 
-Old (2015), US, noisy and sampled data; dasher counts are local snapshots, not market supply; the response curve is observational (busy hours may differ in other ways, which is why dinner sits a few points above lunch at the same load); there are no cancellations or unfulfilled orders; the value of a late delivery is an assumption. Each of these is something I would check first on Uber's own data.
+One city, 8 days, autumn 2022, in a market with different courier economics from Belgium. The root-cause split compares each order with typical on-time orders, so it is an attribution, not an experiment. Courier supply is only visible while couriers carry orders (except at the 24 lunch snapshots). No weather, prices or conversion data. Every euro figure is an assumption. Each of these is a reason to rerun the queries on Uber's own Belgian data before acting.
