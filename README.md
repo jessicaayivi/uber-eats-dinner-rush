@@ -10,7 +10,7 @@ Two linked pieces of one case, built for a marketplace operations role:
 The analysis is the evidence; the map is the action: the real data shows idle couriers at the peak while busy ones stack 3+ orders, and the map shows where to put them in Brussels.
 
 - 🧮 **Code:** optimiser in [`src/optimiser/`](src/optimiser/), SQL in [`sql/analysis.sql`](sql/analysis.sql), lever model in [`src/sizing.py`](src/sizing.py)
-- 📊 **Deck:** [Winning the Dinner Rush](https://claude.ai/artifact/CSPXkXz3a7duPuGExZo2zm) (being updated to this version)
+- 📊 **Deck:** [Where Brussels Couriers Should Wait](https://claude.ai/artifact/7fr267bv96b8hgq96Ru1jv) (11 slides, with speaker notes)
 
 ---
 
