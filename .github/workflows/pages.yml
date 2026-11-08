@@ -1,4 +1,4 @@
-# Publishes the interactive simulator with GitHub Pages on every push to main.
+# Publishes the simulator (/) and the Brussels optimiser map (/optimiser/) with GitHub Pages on every push to main.
 name: Publish simulator
 
 on:
@@ -26,14 +26,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Check the simulator reproduces sizing.py
+      - name: Check both pages reproduce their Python models
         run: |
-          pip install mini-racer
+          pip install mini-racer pandas "pulp==2.9.0"
           python src/check_simulator.py
-      - name: Copy the built simulator into the site folder
+          python src/optimiser/check_page.py
+      - name: Copy the built pages into the site folder
         run: |
-          mkdir -p public
+          mkdir -p public/optimiser
           cp simulator/index.html public/index.html
+          cp optimiser/index.html public/optimiser/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brussels Courier Positioning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root {
+  --ink: #171B22; --muted: #555D6B; --paper: #F2F3EF; --panel: #FFFFFF; --line: #DCDED7;
+  --accent: #B5600A; --accent-soft: #F6E3CB; --cool: #2C5FC9; --good: #1F7A4D; --bad: #B3261E;
+  --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #ECEDEA; --muted: #A7ADB8; --paper: #14171C; --panel: #1C2027; --line: #313641;
+    --accent: #F0A24A; --accent-soft: #3A2A17; --cool: #7FA6F5; --good: #5CC491; --bad: #F08A80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #ECEDEA; --muted: #A7ADB8; --paper: #14171C; --panel: #1C2027; --line: #313641;
+  --accent: #F0A24A; --accent-soft: #3A2A17; --cool: #7FA6F5; --good: #5CC491; --bad: #F08A80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 48px; display: flex; flex-direction: column; gap: 22px; }
+@media (max-width: 620px) { .wrap { padding: 20px 16px 40px; } }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 24px; border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 4vw, 40px); line-height: 1.05; margin: 0; letter-spacing: -0.5px; text-wrap: balance; }
+.kicker { font-size: 13px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+.byline { color: var(--muted); font-size: 14px; max-width: 52ch; margin: 0; }
+.byline a, footer a, .note a { color: var(--cool); }
+.note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 14px; margin: 0; max-width: 110ch; }
+.grid { display: grid; grid-template-columns: 300px 1fr; gap: 22px; align-items: start; }
+@media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.controls { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 12px; }
+@media (max-width: 880px) { .controls { position: static; } }
+h2 { font-family: var(--display); font-size: 17px; font-weight: 700; margin: 0; }
+.ctl { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ctl p { margin: 0; color: var(--muted); font-size: 13px; }
+label.row { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+label.row output { font-variant-numeric: tabular-nums; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+input:focus-visible, button:focus-visible, select:focus-visible { outline: 3px solid var(--cool); outline-offset: 2px; }
+select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; }
+.seg button { font: inherit; font-size: 13px; padding: 6px 12px; border: 0; background: var(--panel); color: var(--ink); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.out { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 980px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.tile .lab { font-size: 13px; color: var(--muted); }
+.tile .val { font-family: var(--display); font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+@media (max-width: 620px) { .tile .val { font-size: 22px; } }
+.tile .sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mapbox { padding: 0; overflow: hidden; }
+.maphead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px 18px; }
+#map { height: 520px; width: 100%; background: var(--line); }
+@media (max-width: 620px) { #map { height: 400px; } }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); padding: 10px 18px 14px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+ol.moves { margin: 10px 0 0; padding-left: 20px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+ol.moves b { font-variant-numeric: tabular-nums; }
+table.zones { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; margin-top: 10px; }
+table.zones th, table.zones td { padding: 4px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+table.zones th:first-child, table.zones td:first-child { text-align: left; }
+table.zones th { color: var(--muted); font-weight: 500; }
+.leaflet-tooltip { font-family: var(--body); font-size: 13px; }
+footer { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; max-width: 110ch; }
+footer p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <p class="kicker">Courier positioning · Brussels-Capital Region</p>
+    <h1>Where should couriers wait?</h1>
+  </div>
+  <p class="byline">Pick an hour: the map shows where couriers are short or idle, and the optimiser moves the same couriers to cut late deliveries. By Jessica Ayivi. Evidence behind it: <a href="../">the Dinner Rush analysis on 538,689 real orders</a>.</p>
+</header>
+<p class="note"><b>Real skeleton, simulated orders.</b> Geography and residents (Statbel), restaurants (OpenStreetMap), rain hours (Open-Meteo, Sep–Oct 2026) and how lateness responds to courier load (Meituan's real delivery data) are real. Only the stream of orders is simulated from them, and the weekly volume is an assumption. Uber's data isn't public; nothing here is Uber data.</p>
+
+<div class="grid">
+<aside class="panel controls" aria-label="Scenario">
+  <h2>Scenario</h2>
+  <label class="row" for="dow">Day <select id="dow"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select></label>
+  <div class="ctl">
+    <label class="row" for="hour">Hour <output id="hourOut"></output></label>
+    <input id="hour" type="range" min="10" max="22" step="1">
+  </div>
+  <div class="ctl">
+    <label class="row" for="rain"><span>Rain this hour</span><input id="rain" type="checkbox"></label>
+    <p><span id="rainTxt"></span> more orders, same couriers. <span id="rainReal"></span></p>
+  </div>
+  <div class="ctl">
+    <label class="row" for="staffing_scale">Couriers on duty <output id="staffingOut"></output></label>
+    <input id="staffing_scale" type="range" min="0.6" max="1.4" step="0.05">
+    <p>100% = staffed like the real network in the Meituan data at this hour.</p>
+  </div>
+  <div class="ctl">
+    <label class="row" for="compliance">Couriers who follow a nudge <output id="complianceOut"></output></label>
+    <input id="compliance" type="range" min="0" max="1" step="0.05">
+    <p>Positioning is a nudge (heatmaps, boosts), not an order.</p>
+  </div>
+  <div class="ctl">
+    <label class="row" for="weekly_orders">Orders a week (assumption) <output id="weeklyOut"></output></label>
+    <input id="weekly_orders" type="range" min="15000" max="60000" step="1000">
+  </div>
+</aside>
+
+<main class="out">
+  <section class="tiles" aria-label="This hour" aria-live="polite">
+    <div class="tile"><span class="lab">Late orders this hour</span><span class="val" id="kLate"></span><span class="sub" id="kLateSub"></span></div>
+    <div class="tile"><span class="lab">Fewer late orders</span><span class="val" id="kImpr"></span><span class="sub" id="kImprSub"></span></div>
+    <div class="tile"><span class="lab">Couriers to move</span><span class="val" id="kMove"></span><span class="sub" id="kMoveSub"></span></div>
+    <div class="tile"><span class="lab">Same service with</span><span class="val" id="kSave"></span><span class="sub" id="kSaveSub"></span></div>
+  </section>
+
+  <section class="panel mapbox" aria-labelledby="mapTitle">
+    <div class="maphead">
+      <h2 id="mapTitle">Orders per courier (load), by zone</h2>
+      <div class="seg" role="group" aria-label="Show couriers">
+        <button type="button" id="vToday" aria-pressed="true">Today (drift)</button>
+        <button type="button" id="vOpt" aria-pressed="false">Optimised</button>
+      </div>
+    </div>
+    <div id="map" role="img" aria-label="Map of Brussels hexagons coloured by courier load"></div>
+    <div class="legend">
+      <span><i style="background:#CFD6CC"></i>Under 1.25: idle couriers</span>
+      <span><i id="lg1"></i>1.25–1.75</span>
+      <span><i id="lg2"></i>1.75–2.5: stretched</span>
+      <span><i id="lg3"></i>Over 2.5: short of couriers</span>
+    </div>
+  </section>
+
+  <div class="two">
+    <section class="panel" aria-labelledby="movesTitle">
+      <h2 id="movesTitle">Recommended moves</h2>
+      <ol class="moves" id="moves"></ol>
+    </section>
+    <section class="panel" aria-labelledby="zonesTitle">
+      <h2 id="zonesTitle">Busiest zones this hour</h2>
+      <table class="zones"><thead><tr><th scope="col">Zone</th><th scope="col">Orders</th><th scope="col">Couriers today</th><th scope="col">Optimised</th></tr></thead><tbody id="zones"></tbody></table>
+    </section>
+  </div>
+
+  <footer>
+    <p><b>Method.</b> Load in a zone = orders × <span id="minTxt"></span> minutes with a courier ÷ 60 ÷ couriers there. Late rate = <span id="curveTxt"></span>, fitted on Meituan's real delivery data: each doubling of load adds <span id="dblTxt"></span> points. "Today" assumes couriers drift to where their last drop-off ended (in proportion to residents); pickups follow food places (70%) and residents (30%). The optimiser gives each next courier to the zone where it removes the most late orders, which is optimal for this curve (checked against an integer program). A simple rule, couriers in proportion to restaurants, gets within <span id="ruleTxt"></span> of the optimum: the gain comes from correcting drift every hour.</p>
+    <p><b>Sources.</b> Source: Statbel (statistical sectors and population 2025, CC BY 4.0; residents re-apportioned to hexagons). Restaurants © OpenStreetMap contributors (ODbL). Weather data by Open-Meteo.com (CC BY 4.0). Delivery behaviour: Meituan INFORMS TSL data (CC BY-NC 4.0); this research was supported by data provided by Meituan. Demand shape: DoorDash ETA dataset (Kaggle). Map tiles © OpenStreetMap contributors. Independent analysis by Jessica Ayivi; not affiliated with Uber, Meituan or DoorDash.</p>
+  </footer>
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const DATA = __DATA__;
+// MODEL START: line-by-line copy of src/optimiser/model.py and the scenario in optimise.py (checked by check_page.py)
+function late(orders, couriers, p) {
+  if (orders <= 0) return 0;
+  const load = orders * p.minutes_with_courier / 60 / Math.max(couriers, 1e-9);
+  return orders * Math.max(p.curve_floor, p.curve_a + p.curve_b * Math.log(load));
+}
+function floorFor(total, zones, minimum) { return total >= minimum * zones ? minimum : 0; }
+function greedy(orders, total, p, minimum) {
+  const n = orders.length;
+  minimum = floorFor(total, n, minimum);
+  const alloc = new Array(n).fill(minimum);
+  const gain = orders.map(o => late(o, minimum, p) - late(o, minimum + 1, p));
+  let current = orders.reduce((s, o) => s + late(o, minimum, p), 0);
+  const path = [current];
+  for (let step = 0; step < Math.max(0, total - minimum * n); step++) {
+    let best = 0;
+    for (let i = 1; i < n; i++) if (gain[i] > gain[best]) best = i;
+    alloc[best] += 1;
+    current += -gain[best];
+    path.push(current);
+    gain[best] = late(orders[best], alloc[best], p) - late(orders[best], alloc[best] + 1, p);
+  }
+  return [alloc, path];
+}
+function proportional(weights, total, minimum) {
+  const n = weights.length;
+  minimum = floorFor(total, n, minimum);
+  const spare = total - minimum * n, s = weights.reduce((a, b) => a + b, 0) || 1;
+  const raw = weights.map(w => spare * w / s), alloc = raw.map(r => minimum + Math.trunc(r));
+  const order = [...Array(n).keys()].sort((i, j) => ((raw[j] - Math.trunc(raw[j])) - (raw[i] - Math.trunc(raw[i]))) || (i - j));
+  const extra = total - alloc.reduce((a, b) => a + b, 0);
+  for (const i of order.slice(0, Math.max(0, extra))) alloc[i] += 1;
+  return alloc;
+}
+function totalLate(orders, alloc, p) { return orders.reduce((s, o, i) => s + late(o, alloc[i], p), 0); }
+function moves(base, target, names) {
+  const give = [], need = [];
+  base.forEach((b, i) => { if (b > target[i]) give.push([b - target[i], i]); else if (target[i] > b) need.push([target[i] - b, i]); });
+  const cmp = (x, y) => (y[0] - x[0]) || (x[1] - y[1]);
+  give.sort(cmp); need.sort(cmp);
+  const out = []; let gi = 0;
+  for (let [amount, j] of need) {
+    while (amount > 0 && gi < give.length) {
+      const k = Math.min(amount, give[gi][0]);
+      out.push([names[give[gi][1]], names[j], k]);
+      amount -= k; give[gi][0] -= k;
+      if (give[gi][0] === 0) gi++;
+    }
+  }
+  return out;
+}
+function couriersSaved(path, baseLate, total) {
+  const start = total - (path.length - 1);
+  for (let k = 0; k < path.length; k++) if (path[k] <= baseLate + 1e-9) return total - (start + k);
+  return 0;
+}
+function roundHalfEven(x) {            // Python's round()
+  const f = Math.floor(x), d = x - f;
+  if (Math.abs(d - 0.5) < 1e-12) return f % 2 === 0 ? f : f + 1;
+  return Math.round(x);
+}
+function scenario(M, p, dow, hour, rain) {
+  const share = M.shape[dow + "-" + hour] || 0;
+  const city = p.weekly_orders * share * (1 + p.rain_uplift * (rain ? 1 : 0));
+  const orders = M.zones.map(z => city * z.pickup_share);
+  const dry = p.weekly_orders * share;
+  const total = Math.max(Math.trunc(roundHalfEven(p.staffing_scale * dry * p.minutes_with_courier / 60 / M.staffing[hour])), 1);
+  const drift = proportional(M.zones.map(z => z.residents), total, M.min);
+  const food = proportional(M.zones.map(z => z.food_places), total, M.min);
+  const [best, path] = greedy(orders, total, p, M.min);
+  const realised = drift.map((d, i) => d + p.compliance * (best[i] - d));
+  const lateDrift = totalLate(orders, drift, p), lateBest = totalLate(orders, best, p);
+  return {orders: orders.reduce((a, b) => a + b, 0), couriers: total, late_drift: lateDrift,
+          late_food: totalLate(orders, food, p), late_optimised: lateBest, late_realised: totalLate(orders, realised, p),
+          moved: drift.reduce((s, d, i) => s + Math.max(0, best[i] - d), 0),
+          couriers_saved: couriersSaved(path, lateDrift, total),
+          allocation: {drift, food, optimised: best}, zone_orders: orders,
+          moves: moves(drift, best, M.zones.map(z => z.zone))};
+}
+// MODEL END
+
+if (typeof document !== "undefined") {
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 0) => n.toLocaleString("en-GB", {maximumFractionDigits: d, minimumFractionDigits: d});
+const COLORS = ["#CFD6CC", "#E9C49B", "#C9822F", "#B3261E"];
+const colour = load => load < 1.25 ? COLORS[0] : load < 1.75 ? COLORS[1] : load < 2.5 ? COLORS[2] : COLORS[3];
+let view = "today";
+
+const map = L.map("map", {scrollWheelZoom: false, zoomSnap: 0.25}).setView([50.838, 4.37], 11.5);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+const hexLayers = DATA.hexes.map(h => L.polygon(h.boundary, {weight: 0.6, color: "#FFFFFF", fillOpacity: 0.72}).addTo(map));
+
+function params() {
+  return {...DATA.defaults, staffing_scale: +$("staffing_scale").value, compliance: +$("compliance").value,
+          weekly_orders: +$("weekly_orders").value};
+}
+
+function render() {
+  const p = params(), dow = +$("dow").value, hour = +$("hour").value, rain = $("rain").checked;
+  const s = scenario(DATA, p, dow, hour, rain);
+  $("hourOut").textContent = String(hour).padStart(2, "0") + ":00";
+  $("staffingOut").textContent = fmt(p.staffing_scale * 100) + "% · " + s.couriers + " couriers";
+  $("complianceOut").textContent = fmt(p.compliance * 100) + "%";
+  $("weeklyOut").textContent = fmt(p.weekly_orders);
+
+  const pct = s.late_drift > 0 ? 100 * (1 - s.late_optimised / s.late_drift) : 0;
+  const pctReal = s.late_drift > 0 ? 100 * (1 - s.late_realised / s.late_drift) : 0;
+  $("kLate").textContent = fmt(s.late_drift) + " → " + fmt(s.late_optimised);
+  $("kLateSub").textContent = "of " + fmt(s.orders) + " orders · " + fmt(100 * s.late_drift / Math.max(s.orders, 1e-9), 1) + "% → " + fmt(100 * s.late_optimised / Math.max(s.orders, 1e-9), 1) + "%";
+  $("kImpr").textContent = "−" + fmt(pct, 1) + "%";
+  $("kImprSub").textContent = "−" + fmt(pctReal, 1) + "% if " + fmt(p.compliance * 100) + "% follow the nudge";
+  $("kMove").textContent = fmt(s.moved);
+  $("kMoveSub").textContent = "of " + fmt(s.couriers) + " on duty";
+  $("kSave").textContent = fmt(s.couriers - s.couriers_saved) + " couriers";
+  $("kSaveSub").textContent = s.couriers_saved > 0 ? fmt(s.couriers_saved) + " fewer, optimally placed" : "no saving at this hour";
+
+  const alloc = view === "today" ? s.allocation.drift : s.allocation.optimised;
+  const load = s.zone_orders.map((o, i) => o * p.minutes_with_courier / 60 / Math.max(alloc[i], 1e-9));
+  DATA.hexes.forEach((h, k) => {
+    const z = h.zone, zone = DATA.zones[z];
+    hexLayers[k].setStyle({fillColor: colour(load[z])});
+    hexLayers[k].bindTooltip(`<b>${zone.zone}</b><br>${fmt(s.zone_orders[z], 1)} orders this hour<br>Couriers: ${s.allocation.drift[z]} today → ${s.allocation.optimised[z]} optimised<br>Load ${fmt(load[z], 2)} orders per courier<br>${fmt(h.residents)} residents, ${h.food_places} food places in this hexagon`, {sticky: true});
+  });
+
+  const list = s.moves.slice().sort((a, b) => b[2] - a[2]).slice(0, 8);
+  $("moves").innerHTML = list.length ? list.map(([a, b, k]) => `<li>Move <b>${k}</b> courier${k > 1 ? "s" : ""} from ${a} to ${b}</li>`).join("")
+    + (s.moves.length > 8 ? `<li style="list-style:none;color:var(--muted)">+ ${s.moves.length - 8} smaller moves</li>` : "")
+    : "<li style='list-style:none'>No moves needed.</li>";
+  const top = DATA.zones.map((z, i) => i).sort((i, j) => s.zone_orders[j] - s.zone_orders[i]).slice(0, 8);
+  $("zones").innerHTML = top.map(i => `<tr><td>${DATA.zones[i].zone}</td><td>${fmt(s.zone_orders[i], 1)}</td><td>${s.allocation.drift[i]}</td><td>${s.allocation.optimised[i]}</td></tr>`).join("");
+}
+
+for (const [id, v] of [["hour", 19], ["staffing_scale", DATA.defaults.staffing_scale], ["compliance", DATA.defaults.compliance], ["weekly_orders", DATA.defaults.weekly_orders]]) $(id).value = v;
+$("dow").value = "4";
+$("rainTxt").textContent = "+" + fmt(DATA.defaults.rain_uplift * 100) + "%";
+$("rainReal").textContent = `In Brussels, ${DATA.rain.rainy} of ${DATA.rain.hours} service hours were rainy on 7 Sep–4 Oct 2026.`;
+$("minTxt").textContent = fmt(DATA.defaults.minutes_with_courier, 0);
+$("curveTxt").textContent = `${fmt(DATA.defaults.curve_a * 100, 1)}% + ${fmt(DATA.defaults.curve_b * 100, 1)} pts × ln(load), at least ${fmt(DATA.defaults.curve_floor * 100, 1)}%`;
+$("dblTxt").textContent = fmt(DATA.defaults.curve_b * Math.log(2) * 100, 1);
+$("ruleTxt").textContent = DATA.rule_gap_pct;
+["dow", "hour", "rain", "staffing_scale", "compliance", "weekly_orders"].forEach(id => $(id).addEventListener("input", render));
+$("vToday").addEventListener("click", () => { view = "today"; $("vToday").setAttribute("aria-pressed", "true"); $("vOpt").setAttribute("aria-pressed", "false"); render(); });
+$("vOpt").addEventListener("click", () => { view = "optimised"; $("vOpt").setAttribute("aria-pressed", "true"); $("vToday").setAttribute("aria-pressed", "false"); render(); });
+$("lg1").style.background = COLORS[1]; $("lg2").style.background = COLORS[2]; $("lg3").style.background = COLORS[3];
+render();
+}
+</script>
+</body>
+</html>

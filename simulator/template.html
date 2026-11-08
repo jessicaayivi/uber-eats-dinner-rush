@@ -43,6 +43,7 @@ header { display: flex; flex-wrap: wrap; justify-content: space-between; align-i
 h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 4vw, 40px); line-height: 1.05; margin: 0; letter-spacing: -0.5px; text-wrap: balance; }
 .kicker { font-size: 13px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
 .byline { color: var(--muted); font-size: 14px; max-width: 50ch; margin: 0; }
+.byline a { color: var(--cool); }
 .note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 14px; margin: 0; max-width: 100ch; }
 .grid { display: grid; grid-template-columns: 330px 1fr; gap: 22px; align-items: start; }
 @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
@@ -106,7 +107,7 @@ footer p { margin: 0; }
     <p class="kicker">Food-delivery marketplace case · real data</p>
     <h1>Dinner Rush Simulator</h1>
   </div>
-  <p class="byline">Move the levers and see what happens to late deliveries and the weekly P&amp;L in a real food-delivery network. An independent case by Jessica Ayivi.</p>
+  <p class="byline">Move the levers and see what happens to late deliveries and the weekly P&amp;L in a real food-delivery network. An independent case by Jessica Ayivi. Next: <a href="optimiser/">where should Brussels couriers wait? (interactive map)</a></p>
 </header>
 <p class="note">Runs on <b>real Meituan food-delivery orders</b>: 538,689 orders in 23 business districts of one Chinese city, 17–24 October 2022, each with the delivery time promised to the customer. It is not Uber data and not Belgian data. The data has no prices or pay, so every euro figure is an assumption you can change. This research was supported by data provided by Meituan (CC BY-NC 4.0).</p>
 
