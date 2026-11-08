@@ -42,12 +42,13 @@ body { background: var(--paper); color: var(--ink); font-family: var(--body); fo
 header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 24px; border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
 h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 4vw, 40px); line-height: 1.05; margin: 0; letter-spacing: -0.5px; text-wrap: balance; }
 .kicker { font-size: 13px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
-.byline { color: var(--muted); font-size: 14px; max-width: 46ch; margin: 0; }
-.note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 14px; margin: 0; max-width: 90ch; }
+.byline { color: var(--muted); font-size: 14px; max-width: 50ch; margin: 0; }
+.note { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 10px 14px; border-radius: 4px; font-size: 14px; margin: 0; max-width: 100ch; }
 .grid { display: grid; grid-template-columns: 330px 1fr; gap: 22px; align-items: start; }
 @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
 .controls { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 12px; }
+@media (max-width: 880px) { .controls { position: static; } }
 .controls h2, .out h2 { font-family: var(--display); font-size: 17px; font-weight: 700; margin: 0; }
 .lever { display: flex; flex-direction: column; gap: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
 .lever .step { font-family: var(--display); font-weight: 800; color: var(--accent); margin-right: 6px; }
@@ -64,6 +65,7 @@ select { font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid 
 .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
 .tile .lab { font-size: 13px; color: var(--muted); }
 .tile .val { font-family: var(--display); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+@media (max-width: 620px) { .tile .val { font-size: 24px; } }
 .tile .sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; width: fit-content; }
 .pill.good { color: var(--good); border: 1px solid var(--good); }
@@ -78,10 +80,10 @@ table.heat th { font-weight: 500; color: var(--muted); padding: 2px 4px; }
 table.heat th[scope=row] { text-align: left; white-space: nowrap; }
 table.heat td { text-align: center; padding: 7px 0; border-radius: 4px; }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 10px; }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
 .bars { display: flex; flex-direction: column; gap: 10px; }
-.bar { display: grid; grid-template-columns: 200px 1fr 120px; gap: 12px; align-items: center; font-size: 14px; }
+.bar { display: grid; grid-template-columns: 200px 1fr 150px; gap: 12px; align-items: center; font-size: 14px; }
 @media (max-width: 620px) { .bar { grid-template-columns: 1fr; gap: 4px; } }
 .track { background: var(--paper); border-radius: 5px; height: 22px; position: relative; overflow: hidden; }
 .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; transition: width .25s; }
@@ -101,224 +103,285 @@ footer p { margin: 0; }
 <div class="wrap">
 <header>
   <div>
-    <p class="kicker">Uber Eats Belgium · marketplace case</p>
+    <p class="kicker">Delivery marketplace case · real data</p>
     <h1>Dinner Rush Simulator</h1>
   </div>
-  <p class="byline">Move the levers and see what happens to lost orders, delivery reliability and the weekly P&amp;L across Brussels, Antwerp, Ghent and Liège. By Jessica Ayivi.</p>
+  <p class="byline">Move the levers and see what happens to late deliveries and the weekly P&amp;L in a real food-delivery marketplace. An independent case by Jessica Ayivi.</p>
 </header>
-<p class="note">Runs on a simulated marketplace (4 cities, 4 weeks, 1,568 city-hours, ~223k orders), not Uber data. The economics are anchored on Uber’s Q3 2026 Delivery figures. The method is meant to be rerun on real data.</p>
+<p class="note">Runs on <b>real DoorDash deliveries</b> from a public Kaggle dataset: 176,448 orders in six anonymised US markets, 21 Jan–17 Feb 2015 (the publisher added noise). It is not Uber data and not Belgian data. The batching delay comes from a second public dataset (Indian cities, 2022). Money is in US dollars.</p>
 
 <div class="grid">
 <aside class="panel controls" aria-label="Levers">
   <h2>Levers</h2>
-  <label class="row" for="city">City <select id="city"><option value="-1">All four cities</option><option value="0">Brussels</option><option value="1">Antwerp</option><option value="2">Ghent</option><option value="3">Liège</option></select></label>
+  <label class="row" for="market">Market <select id="market"><option value="-1">All six markets</option></select></label>
 
   <div class="lever">
     <div><span class="step">1</span><b>Rebalance shifts</b></div>
-    <p>Share of each stressed hour’s courier gap filled by hours moved from idle off-peak slots, at no cost.</p>
-    <label class="row" for="shift">Gap filled <output id="shiftOut"></output></label>
-    <input id="shift" type="range" min="0" max="50" step="5" value="25">
+    <p>Share of idle dasher time in quiet hours (load under 0.8) moved into stressed hours of the same market, at no cost.</p>
+    <label class="row" for="rebalance_share">Idle time moved <output id="rebalance_shareOut"></output></label>
+    <input id="rebalance_share" type="range" min="0" max="100" step="5" data-scale="100">
   </div>
 
   <div class="lever">
-    <div><span class="step">2</span><b>Batching and tighter radius</b></div>
-    <p>Deliveries per courier-hour when utilisation passes 85%. Today: 2.1.</p>
-    <label class="row" for="cap">Deliveries per hour <output id="capOut"></output></label>
-    <input id="cap" type="range" min="2.1" max="2.6" step="0.05" value="2.3">
+    <div><span class="step">2</span><b>Batching</b></div>
+    <p>Pair orders in stressed hours. A paired order arrives <span id="batchDelay"></span> later (measured), and frees courier time.</p>
+    <label class="row" for="batch_share">Orders paired <output id="batch_shareOut"></output></label>
+    <input id="batch_share" type="range" min="0" max="40" step="5" data-scale="100">
+    <label class="row" for="batch_courier_saving">Courier time saved per paired order <output id="batch_courier_savingOut"></output></label>
+    <input id="batch_courier_saving" type="range" min="10" max="45" step="5" data-scale="100">
   </div>
 
   <div class="lever">
     <div><span class="step">3</span><b>Targeted quests</b></div>
-    <p>Paid only on extra hours, only where utilisation after steps 1–2 stays above the trigger. 30% of spend goes to couriers who would have come anyway.</p>
-    <label class="row" for="thr">Trigger: utilisation above <output id="thrOut"></output></label>
-    <input id="thr" type="range" min="85" max="150" step="5" value="110">
-    <label class="row" for="qshare">Extra gap filled <output id="qshareOut"></output></label>
-    <input id="qshare" type="range" min="0" max="60" step="5" value="35">
-    <label class="row" for="qeur">Pay per extra hour <output id="qeurOut"></output></label>
-    <input id="qeur" type="range" min="0" max="15" step="1" value="5">
+    <p>Paid extra hours, only where load after steps 1–2 stays above the trigger. 30% of spend goes to dashers who would have worked anyway.</p>
+    <label class="row" for="quest_trigger_load">Trigger: load above <output id="quest_trigger_loadOut"></output></label>
+    <input id="quest_trigger_load" type="range" min="1.2" max="2.5" step="0.1" data-scale="1">
+    <label class="row" for="quest_share">Share of the gap filled <output id="quest_shareOut"></output></label>
+    <input id="quest_share" type="range" min="0" max="60" step="5" data-scale="100">
+    <label class="row" for="quest_pay_usd">Pay per extra hour <output id="quest_pay_usdOut"></output></label>
+    <input id="quest_pay_usd" type="range" min="0" max="15" step="1" data-scale="1">
   </div>
 
   <div class="lever">
     <div><b>Economics</b></div>
-    <label class="row" for="take">Net revenue per order <output id="takeOut"></output></label>
-    <input id="take" type="range" min="15" max="25" step="1" value="20">
-    <p>Uber’s Q3 2026 Delivery revenue ÷ gross bookings ≈ 19%. Basket: €27.</p>
-    <label class="check" for="blanket"><input id="blanket" type="checkbox" checked> Compare with a blanket weekend boost</label>
+    <label class="row" for="lost_orders_per_late">Future orders lost per late delivery <output id="lost_orders_per_lateOut"></output></label>
+    <input id="lost_orders_per_late" type="range" min="0" max="2" step="0.25" data-scale="1">
+    <label class="row" for="take_rate">Net revenue per order <output id="take_rateOut"></output></label>
+    <input id="take_rate" type="range" min="15" max="25" step="1" data-scale="100">
+    <p>Uber’s Q3 2026 Delivery revenue ÷ gross bookings ≈ 19%. Basket: <span id="basket"></span> (data).</p>
+    <label class="check" for="blanket"><input id="blanket" type="checkbox" checked> Compare with a blanket weekend bonus</label>
   </div>
 </aside>
 
 <main class="out">
   <section class="tiles" aria-label="Weekly outcome" aria-live="polite">
-    <div class="tile"><span class="lab">Unfulfilled orders</span><span class="val" id="kUnf"></span><span class="sub" id="kUnfSub"></span></div>
-    <div class="tile"><span class="lab">Orders saved per week</span><span class="val" id="kRec"></span><span class="sub" id="kRecSub"></span></div>
-    <div class="tile"><span class="lab">Bookings recovered per year</span><span class="val" id="kGb"></span><span class="sub">orders saved × €27 × 52</span></div>
-    <div class="tile"><span class="lab">Late orders in stressed hours</span><span class="val" id="kLate"></span><span class="sub" id="kLateSub"></span></div>
-    <div class="tile"><span class="lab">Incentive spend per week</span><span class="val" id="kCost"></span><span class="sub" id="kCostSub"></span></div>
+    <div class="tile"><span class="lab">Late deliveries (over 60 min)</span><span class="val" id="kLate"></span><span class="sub">share of all deliveries</span></div>
+    <div class="tile"><span class="lab">Late deliveries avoided per week</span><span class="val" id="kAvoid"></span><span class="sub" id="kAvoidSub"></span></div>
+    <div class="tile"><span class="lab">Late in stressed hours</span><span class="val" id="kStress"></span><span class="sub" id="kStressSub"></span></div>
+    <div class="tile"><span class="lab">Quest spend per week</span><span class="val" id="kCost"></span><span class="sub" id="kCostSub"></span></div>
+    <div class="tile"><span class="lab">Value of one late delivery avoided</span><span class="val" id="kValue"></span><span class="sub">lost orders × basket × net revenue</span></div>
     <div class="tile"><span class="lab">Net revenue impact per week</span><span class="val" id="kNet"></span><span id="kNetPill" class="pill"></span></div>
   </section>
 
   <section class="panel" aria-labelledby="heatTitle">
     <div class="head">
-      <h2 id="heatTitle">Courier utilisation by day and hour</h2>
-      <div class="seg" role="group" aria-label="Show utilisation">
+      <h2 id="heatTitle">Load ratio by day and hour (outstanding orders per dasher)</h2>
+      <div class="seg" role="group" aria-label="Show load">
         <button type="button" id="vBefore" aria-pressed="true">Today</button>
         <button type="button" id="vAfter" aria-pressed="false">With the plan</button>
       </div>
     </div>
     <div class="heat-wrap"><table class="heat" id="heat"></table></div>
     <div class="legend">
-      <span><i style="background:var(--line)"></i>Under 85%: healthy</span>
-      <span><i id="lg1"></i>85–100%: stretched</span>
-      <span><i id="lg2"></i>100–120%: breaking</span>
-      <span><i id="lg3"></i>Over 120%: failing</span>
+      <span><i style="background:var(--line)"></i>Under 0.8: quiet</span>
+      <span><i id="lg1"></i>0.8–<span class="kneeTxt"></span>: coping</span>
+      <span><i id="lg2"></i><span class="kneeTxt"></span>–1.5: stressed</span>
+      <span><i id="lg3"></i>Over 1.5: failing</span>
     </div>
   </section>
 
   <section class="panel" aria-labelledby="barTitle">
-    <h2 id="barTitle" style="margin-bottom:14px">Where the saved orders come from (per week)</h2>
+    <h2 id="barTitle" style="margin-bottom:14px">Where the avoided late deliveries come from (per week)</h2>
     <div class="bars" id="bars"></div>
   </section>
 
-  <section class="compare" id="compare" aria-label="Plan versus blanket boost">
+  <section class="compare" id="compare" aria-label="Plan versus blanket bonus">
     <div class="panel"><h3>The plan (levers 1–3)</h3><dl id="cPlan"></dl></div>
-    <div class="panel"><h3>Blanket weekend boost</h3><dl id="cBlanket"></dl></div>
+    <div class="panel"><h3>Blanket weekend bonus</h3><dl id="cBlanket"></dl></div>
   </section>
 
   <footer>
-    <p><b>Model.</b> Utilisation = orders ÷ (couriers online × deliveries per hour). Above 85%, unfulfilled and late rates rise along the response curve estimated from the four weeks of data. Levers act only on stressed hours (where couriers fall short of 85% utilisation). 60% of a targeted gap shows up in the blanket comparison, which pays €4 an hour to every courier on Fri–Sun dinners (17:00–22:00).</p>
-    <p><b>Sources.</b> Simulated marketplace and SQL by Jessica Ayivi. Uber Q3 2026 results for the Delivery revenue-to-bookings ratio.</p>
+    <p><b>Model.</b> The response curve is the observed share of late deliveries at each load ratio, which bends at <span class="kneeTxt"></span>: below it each extra 0.1 of load adds under 1 point of lateness, above it nearly 5. Levers act on stressed market-hours (load above <span class="kneeTxt"></span>) by adding dashers or stretching them, and the curve gives the lateness avoided. Dashers per market-hour come from Little’s law (orders × hours per delivery ÷ load). The blanket comparison pays <span id="blTxt"></span> an hour to every dasher online on Fri–Sun 17:00–21:00, and 60% of the gap shows up.</p>
+    <p><b>How I would use this at Uber Eats Belgium.</b> Rerun the same queries on Belgian city-hours, check whether the knee sits in the same place, and test the levers with a switchback experiment (city × 2-hour blocks).</p>
+    <p><b>Sources.</b> DoorDash ETA dataset (Kaggle, dharun4772) and Food Delivery Dataset (Kaggle, gauravmalik26). Uber Q3 2026 results for the revenue-to-bookings ratio. Analysis by Jessica Ayivi; not affiliated with Uber or DoorDash.</p>
   </footer>
 </main>
 </div>
 
 <script>
-const D = __DATA__; // rows: [city, dow (0=Mon), hour, rain, requested, couriers, unfulfilled, late]
-const CITIES = ["Brussels","Antwerp","Ghent","Liège"];
-const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-const HOURS = [10,11,12,13,14,15,16,17,18,19,20,21,22,23];
-const CAP0 = 2.1, TGT = 0.85, WEEKS = 4, AOV = 27, LEAK = 0.30, SHOW = 0.6, BOOST = 4;
-const unfRate = u => Math.min(0.35, 0.015 + 0.55 * Math.pow(Math.max(0, u - 0.85), 1.3));
-const lateRate = u => Math.min(0.6, 0.06 + 0.9 * Math.pow(Math.max(0, u - 0.85), 1.1));
-const rows = D.map(r => {
-  const [c, dow, h, rain, req, cour, unf, late] = r;
-  const gap = Math.max(0, Math.ceil(req / (CAP0 * TGT)) - cour);
-  return {c, dow, h, rain, req, cour, unf, late, gap};
-});
-const $ = id => document.getElementById(id);
-const fmt = (n, d = 0) => n.toLocaleString("en-GB", {maximumFractionDigits: d, minimumFractionDigits: d});
-const eur = n => (n < 0 ? "−€" : "€") + (Math.abs(n) >= 1e6 ? fmt(Math.abs(n) / 1e6, 2) + "M" : Math.abs(n) >= 1e4 ? fmt(Math.abs(n) / 1e3, 1) + "k" : fmt(Math.abs(n)));
-let view = "before";
+const DATA = __DATA__;
+// MODEL START: the same model as src/sizing.py (checked by src/check_simulator.py)
+// DATA.mh rows: [market, dow (0=Mon), hour, orders, dashers, load_ratio]; DATA.bins rows: [market-hour index, load bin (x10), orders, late]
+function interp(x, xs, ys) {
+  const n = xs.length;
+  if (x <= xs[0]) return ys[0];
+  if (x >= xs[n - 1]) return ys[n - 1];
+  let i = 1;
+  while (xs[i] < x) i++;
+  return ys[i - 1] + (x - xs[i - 1]) / (xs[i] - xs[i - 1]) * (ys[i] - ys[i - 1]);
+}
 
-function simulate(p) {
-  const out = {req: 0, unf0: 0, r1: 0, r2: 0, r3: 0, cost: 0, late0: 0, late3: 0, util: {}, bl: {rec: 0, cost: 0}};
-  for (const r of rows) {
-    if (p.city >= 0 && r.c !== p.city) continue;
-    out.req += r.req; out.unf0 += r.unf;
-    let uAfter = r.req / (r.cour * CAP0);
-    if (r.gap > 0) {
-      const c1 = r.cour + p.shift * r.gap;
-      const u1 = r.req / (c1 * CAP0);
-      const u2 = r.req / (c1 * p.cap);
-      const add = (u2 > p.thr) ? p.qshare * r.gap : 0;
-      const u3 = r.req / ((c1 + add) * p.cap);
-      out.r1 += Math.max(0, r.unf - r.req * unfRate(u1));
-      out.r2 += Math.max(0, r.unf - r.req * unfRate(u2));
-      out.r3 += Math.max(0, r.unf - r.req * unfRate(u3));
-      out.cost += p.qeur * (1 + LEAK) * add;
-      out.late0 += r.late;
-      out.late3 += r.req * (1 - unfRate(u3)) * lateRate(u3);
-      uAfter = u3;
-    }
-    if (r.dow >= 4 && r.h >= 17 && r.h <= 21) {
-      const add = SHOW * r.gap;
-      const u = r.req / ((r.cour + add) * CAP0);
-      out.bl.rec += Math.max(0, r.unf - r.req * unfRate(u));
-      out.bl.cost += BOOST * (r.cour + add);
-    }
-    const k = r.dow + "-" + r.h;
-    const cell = out.util[k] || (out.util[k] = {req: 0, cap0: 0, cap1: 0});
-    cell.req += r.req; cell.cap0 += r.cour * CAP0; cell.cap1 += r.req / uAfter;
+function simulate(M, p, market) {
+  const S = M.stress, mh = M.mh, n = mh.length;
+  const c = x => interp(x, M.curve.x, M.curve.late), cb = x => interp(x, M.curve.x, M.curve.late_batched);
+  const gap = new Float64Array(n), slack = new Float64Array(n), add1 = new Float64Array(n), give = new Float64Array(n);
+  const scale = new Float64Array(n), addBl = new Float64Array(n), stressed = new Array(n);
+  const need = {}, pool = {};
+  for (let i = 0; i < n; i++) {
+    const [m, , , , D, L] = mh[i];
+    stressed[i] = L > S;
+    gap[i] = stressed[i] ? D * (L / S - 1) : 0;
+    slack[i] = L < p.quiet_load ? D * (1 - L / p.quiet_load) : 0;
+    need[m] = (need[m] || 0) + gap[i];
+    pool[m] = (pool[m] || 0) + slack[i];
   }
+  const out = {late_before: 0, late_after: 0, late_stressed_before: 0, late_stressed_after: 0, quest_cost: 0,
+               quest_hours: 0, rebalanced_hours: 0, gap_hours: 0, slack_hours: 0, blanket_avoided: 0, blanket_cost: 0,
+               orders: 0, cells: {}};
+  const stretchOn = 1 / (1 - p.batch_share * p.batch_courier_saving);
+  for (let i = 0; i < n; i++) {
+    const [m, dow, h, orders, D, L] = mh[i];
+    const used = Math.min(p.rebalance_share * pool[m], need[m]);
+    add1[i] = need[m] > 0 ? gap[i] * used / need[m] : 0;
+    give[i] = pool[m] > 0 ? slack[i] * used / pool[m] : 0;
+    const stretch = stressed[i] ? stretchOn : 1;
+    const load12 = stressed[i] ? L * D / ((D + add1[i]) * stretch) : L;
+    const add3 = (stressed[i] && load12 > p.quest_trigger_load) ? p.quest_share * gap[i] : 0;
+    scale[i] = stressed[i] ? D / ((D + add1[i] + add3) * stretch) : D / Math.max(D - give[i], 1e-9);
+    const wd = dow >= 4 && h >= 17 && h <= 20;
+    addBl[i] = wd ? p.blanket_show_share * gap[i] : 0;
+    if (market >= 0 && m !== market) continue;
+    out.quest_cost += add3 * p.quest_pay_usd * (1 + p.quest_leakage);
+    out.quest_hours += add3; out.rebalanced_hours += add1[i]; out.gap_hours += gap[i]; out.slack_hours += slack[i];
+    if (wd) out.blanket_cost += (D + addBl[i]) * p.blanket_bonus_usd;
+    const k = dow + "-" + h, cell = out.cells[k] || (out.cells[k] = {orders: 0, l0: 0, l1: 0});
+    cell.orders += orders; cell.l0 += orders * L; cell.l1 += orders * L * scale[i];
+  }
+  // "Before" is the observed late count; the curve only says how much each lever changes it
+  out.avoided = 0;
+  for (const [i, bin, o, late] of M.bins) {
+    if (market >= 0 && mh[i][0] !== market) continue;
+    const x = bin / 10 + 0.05, sc = scale[i], s = stressed[i] ? p.batch_share : 0;
+    const before = o * c(x), avoided = before - o * ((1 - s) * c(x * sc) + s * cb(x * sc));
+    const D = mh[i][4];
+    out.orders += o; out.late_before += late; out.avoided += avoided;
+    if (stressed[i]) { out.late_stressed_before += late; out.late_stressed_after += late - avoided; }
+    out.blanket_avoided += before - o * c(x * D / (D + addBl[i]));
+  }
+  out.late_after = out.late_before - out.avoided;
   return out;
 }
 
+function plan(M, p, market) {
+  const v = p.lost_orders_per_late * p.basket_usd * p.take_rate, W = 4;
+  const s1 = simulate(M, {...p, batch_share: 0, quest_share: 0}, market);
+  const s2 = simulate(M, {...p, quest_share: 0}, market);
+  const s3 = simulate(M, p, market);
+  const questAvoided = s3.avoided - s2.avoided;
+  return {
+    value_per_late_avoided_usd: v,
+    orders_per_week: s3.orders / W,
+    late_per_week_before: s3.late_before / W,
+    late_pct_before: 100 * s3.late_before / s3.orders,
+    late_pct_after: 100 * s3.late_after / s3.orders,
+    late_stressed_before: s3.late_stressed_before / W, late_stressed_after: s3.late_stressed_after / W,
+    avoided_per_week_step1: s1.avoided / W,
+    avoided_per_week_step2: (s2.avoided - s1.avoided) / W,
+    avoided_per_week_step3: questAvoided / W,
+    avoided_per_week_total: s3.avoided / W,
+    quest_spend_per_week_usd: s3.quest_cost / W,
+    quest_cost_per_late_avoided_usd: questAvoided > 0 ? s3.quest_cost / questAvoided : null,
+    plan_net_per_week_usd: (s3.avoided * v - s3.quest_cost) / W,
+    blanket_avoided_per_week: s3.blanket_avoided / W,
+    blanket_spend_per_week_usd: s3.blanket_cost / W,
+    blanket_cost_per_late_avoided_usd: s3.blanket_avoided > 0 ? s3.blanket_cost / s3.blanket_avoided : null,
+    blanket_net_per_week_usd: (s3.blanket_avoided * v - s3.blanket_cost) / W,
+    cells: s3.cells
+  };
+}
+// MODEL END
+
+if (typeof document !== "undefined") {
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const HOURS = [8,9,10,11,12,13,14,15,16,17,18,19,20,21,22];
+const LEVERS = ["rebalance_share","batch_share","batch_courier_saving","quest_trigger_load","quest_share","quest_pay_usd","lost_orders_per_late","take_rate"];
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 0) => n.toLocaleString("en-GB", {maximumFractionDigits: d, minimumFractionDigits: d});
+const usd = (n, d) => (n < 0 ? "−$" : "$") + (Math.abs(n) >= 1e4 ? fmt(Math.abs(n) / 1e3, 1) + "k" : fmt(Math.abs(n), d ?? (Math.abs(n) < 100 ? 2 : 0)));
+const signed = n => (n >= 0 ? "+" : "") + usd(n);
+let view = "before";
+
+function params() {
+  const p = {...DATA.defaults};
+  for (const id of LEVERS) p[id] = +$(id).value / +$(id).dataset.scale;
+  return p;
+}
+
 function shade(u) {
-  if (u < 0.85) return {bg: "var(--line)", fg: "var(--muted)"};
-  if (u < 1.0) return {bg: "color-mix(in srgb, var(--accent) 35%, var(--panel))", fg: "var(--ink)"};
-  if (u < 1.2) return {bg: "color-mix(in srgb, var(--accent) 70%, var(--panel))", fg: "var(--ink)"};
+  if (u < 0.8) return {bg: "var(--line)", fg: "var(--muted)"};
+  if (u < DATA.stress) return {bg: "color-mix(in srgb, var(--accent) 30%, var(--panel))", fg: "var(--ink)"};
+  if (u < 1.5) return {bg: "color-mix(in srgb, var(--accent) 70%, var(--panel))", fg: "var(--ink)"};
   return {bg: "var(--bad)", fg: "var(--panel)"};
 }
 
 function render() {
-  const p = {
-    city: +$("city").value, shift: $("shift").value / 100, cap: +$("cap").value,
-    thr: $("thr").value / 100, qshare: $("qshare").value / 100, qeur: +$("qeur").value, take: $("take").value / 100
-  };
-  $("shiftOut").textContent = fmt(p.shift * 100) + "%";
-  $("capOut").textContent = fmt(p.cap, 2);
-  $("thrOut").textContent = fmt(p.thr * 100) + "%";
-  $("qshareOut").textContent = fmt(p.qshare * 100) + "%";
-  $("qeurOut").textContent = "€" + fmt(p.qeur);
-  $("takeOut").textContent = fmt(p.take * 100) + "%";
+  const p = params(), r = plan(DATA, p, +$("market").value);
+  $("rebalance_shareOut").textContent = fmt(p.rebalance_share * 100) + "%";
+  $("batch_shareOut").textContent = fmt(p.batch_share * 100) + "%";
+  $("batch_courier_savingOut").textContent = fmt(p.batch_courier_saving * 100) + "%";
+  $("quest_trigger_loadOut").textContent = fmt(p.quest_trigger_load, 1);
+  $("quest_shareOut").textContent = fmt(p.quest_share * 100) + "%";
+  $("quest_pay_usdOut").textContent = "$" + fmt(p.quest_pay_usd);
+  $("lost_orders_per_lateOut").textContent = fmt(p.lost_orders_per_late, 2);
+  $("take_rateOut").textContent = fmt(p.take_rate * 100) + "%";
 
-  const s = simulate(p);
-  const w = x => x / WEEKS;
-  const rec = w(s.r3), cost = w(s.cost);
-  const unfBefore = 100 * s.unf0 / s.req, unfAfter = 100 * (s.unf0 - s.r3) / s.req;
-  $("kUnf").textContent = fmt(unfBefore, 1) + "% → " + fmt(unfAfter, 1) + "%";
-  $("kUnfSub").textContent = "share of orders requested";
-  $("kRec").textContent = fmt(rec);
-  $("kRecSub").textContent = "of " + fmt(w(s.unf0)) + " lost today";
-  $("kGb").textContent = eur(rec * AOV * 52);
-  const lateCut = s.late0 ? 100 * (1 - s.late3 / s.late0) : 0;
-  $("kLate").textContent = "−" + fmt(lateCut) + "%";
-  $("kLateSub").textContent = fmt(w(s.late0)) + " → " + fmt(w(s.late3)) + " a week";
-  $("kCost").textContent = eur(cost);
-  $("kCostSub").textContent = s.r3 - s.r2 > 0.5 ? eur(cost / w(s.r3 - s.r2)) + " per order quests save" : "quests not triggered";
-  const net = rec * AOV * p.take - cost;
-  $("kNet").textContent = (net >= 0 ? "+" : "") + eur(net);
+  $("kLate").textContent = fmt(r.late_pct_before, 1) + "% → " + fmt(r.late_pct_after, 1) + "%";
+  $("kAvoid").textContent = fmt(r.avoided_per_week_total);
+  $("kAvoidSub").textContent = "of " + fmt(r.late_per_week_before) + " late today";
+  const cut = r.late_stressed_before ? 100 * (1 - r.late_stressed_after / r.late_stressed_before) : 0;
+  $("kStress").textContent = "−" + fmt(cut) + "%";
+  $("kStressSub").textContent = fmt(r.late_stressed_before) + " → " + fmt(r.late_stressed_after) + " a week";
+  $("kCost").textContent = usd(r.quest_spend_per_week_usd, 0);
+  $("kCostSub").textContent = r.quest_cost_per_late_avoided_usd ? usd(r.quest_cost_per_late_avoided_usd) + " per late delivery quests avoid" : "quests not triggered";
+  $("kValue").textContent = usd(r.value_per_late_avoided_usd);
+  $("kNet").textContent = signed(r.plan_net_per_week_usd);
   const pill = $("kNetPill");
-  pill.className = "pill " + (net >= 0 ? "good" : "bad");
-  pill.textContent = net >= 0 ? "Pays for itself" : "Costs more than it earns";
+  pill.className = "pill " + (r.plan_net_per_week_usd >= 0 ? "good" : "bad");
+  pill.textContent = r.plan_net_per_week_usd >= 0 ? "Pays for itself" : "Costs more than it earns";
 
-  // heatmap
   let html = "<thead><tr><th></th>" + HOURS.map(h => `<th scope="col">${h}h</th>`).join("") + "</tr></thead><tbody>";
   for (let d = 0; d < 7; d++) {
     html += `<tr><th scope="row">${DAYS[d]}</th>`;
     for (const h of HOURS) {
-      const c = s.util[d + "-" + h];
-      const u = c ? c.req / (view === "before" ? c.cap0 : c.cap1) : 0;
-      const sh = shade(u);
-      html += `<td style="background:${sh.bg};color:${sh.fg}" title="${DAYS[d]} ${h}:00 · ${fmt(u * 100)}%">${fmt(u * 100)}</td>`;
+      const c = r.cells[d + "-" + h];
+      if (!c || !c.orders) { html += "<td>–</td>"; continue; }
+      const u = (view === "before" ? c.l0 : c.l1) / c.orders, sh = shade(u);
+      html += `<td style="background:${sh.bg};color:${sh.fg}" title="${DAYS[d]} ${h}:00 · load ${fmt(u, 2)}">${fmt(u, 1)}</td>`;
     }
     html += "</tr>";
   }
   $("heat").innerHTML = html + "</tbody>";
-  $("heat").setAttribute("aria-label", "Average utilisation in percent, " + (view === "before" ? "today" : "with the plan"));
+  $("heat").setAttribute("aria-label", "Average load ratio, " + (view === "before" ? "today" : "with the plan"));
 
-  // lever bars
+  const still = r.late_per_week_before - r.avoided_per_week_total;
   const parts = [
-    ["1 · Rebalance shifts", w(s.r1), "var(--cool)"],
-    ["2 · Batching and radius", w(s.r2 - s.r1), "var(--cool)"],
-    ["3 · Targeted quests", w(s.r3 - s.r2), "var(--accent)"],
-    ["Still lost", w(s.unf0 - s.r3), "var(--line)"]
+    ["1 · Rebalance shifts", r.avoided_per_week_step1, "var(--cool)"],
+    ["2 · Batching", r.avoided_per_week_step2, "var(--cool)"],
+    ["3 · Targeted quests", r.avoided_per_week_step3, "var(--accent)"],
+    ["Still late", still, "var(--line)"]
   ];
   const max = Math.max(...parts.map(x => x[1]), 1);
-  $("bars").innerHTML = parts.map(([l, v, c]) =>
-    `<div class="bar"><span>${l}</span><div class="track"><div class="fill" style="width:${(100 * v / max).toFixed(1)}%;background:${c}"></div></div><span class="num">${fmt(v)} orders</span></div>`).join("");
+  $("bars").innerHTML = parts.map(([l, v, col]) =>
+    `<div class="bar"><span>${l}</span><div class="track"><div class="fill" style="width:${(100 * Math.max(v, 0) / max).toFixed(1)}%;background:${col}"></div></div><span class="num">${fmt(v)} late</span></div>`).join("");
 
-  // comparison
-  const blRec = w(s.bl.rec), blCost = w(s.bl.cost), blNet = blRec * AOV * p.take - blCost;
-  $("cPlan").innerHTML = `<dt>Orders saved / week</dt><dd>${fmt(rec)}</dd><dt>Incentive spend / week</dt><dd>${eur(cost)}</dd><dt>Net revenue impact / week</dt><dd>${(net >= 0 ? "+" : "") + eur(net)}</dd>`;
-  $("cBlanket").innerHTML = `<dt>Orders saved / week</dt><dd>${fmt(blRec)}</dd><dt>Incentive spend / week</dt><dd>${eur(blCost)}</dd><dt>Spend per saved order</dt><dd>${blRec ? eur(blCost / blRec) : "–"}</dd><dt>Net revenue impact / week</dt><dd>${(blNet >= 0 ? "+" : "") + eur(blNet)}</dd>`;
+  const perLate = v => v == null ? "–" : usd(v);
+  $("cPlan").innerHTML = `<dt>Late deliveries avoided / week</dt><dd>${fmt(r.avoided_per_week_total)}</dd><dt>Incentive spend / week</dt><dd>${usd(r.quest_spend_per_week_usd, 0)}</dd><dt>Quest spend per late avoided</dt><dd>${perLate(r.quest_cost_per_late_avoided_usd)}</dd><dt>Net revenue impact / week</dt><dd>${signed(r.plan_net_per_week_usd)}</dd>`;
+  $("cBlanket").innerHTML = `<dt>Late deliveries avoided / week</dt><dd>${fmt(r.blanket_avoided_per_week)}</dd><dt>Incentive spend / week</dt><dd>${usd(r.blanket_spend_per_week_usd, 0)}</dd><dt>Spend per late avoided</dt><dd>${perLate(r.blanket_cost_per_late_avoided_usd)}</dd><dt>Net revenue impact / week</dt><dd>${signed(r.blanket_net_per_week_usd)}</dd>`;
   $("compare").style.display = $("blanket").checked ? "" : "none";
 }
 
-["city","shift","cap","thr","qshare","qeur","take","blanket"].forEach(id => $(id).addEventListener("input", render));
-$("vBefore").addEventListener("click", () => { view = "before"; $("vBefore").setAttribute("aria-pressed","true"); $("vAfter").setAttribute("aria-pressed","false"); render(); });
-$("vAfter").addEventListener("click", () => { view = "after"; $("vAfter").setAttribute("aria-pressed","true"); $("vBefore").setAttribute("aria-pressed","false"); render(); });
-$("lg1").style.background = shade(0.9).bg; $("lg2").style.background = shade(1.1).bg; $("lg3").style.background = shade(1.3).bg;
+DATA.markets.forEach((name, i) => $("market").insertAdjacentHTML("beforeend", `<option value="${i + 1}">${name}</option>`));
+for (const id of LEVERS) $(id).value = DATA.defaults[id] * +$(id).dataset.scale;
+document.querySelectorAll(".kneeTxt").forEach(e => e.textContent = fmt(DATA.stress, 1));
+$("batchDelay").textContent = fmt(DATA.defaults.batch_delay_pct, 0) + "%";
+$("basket").textContent = usd(DATA.defaults.basket_usd);
+$("blTxt").textContent = usd(DATA.defaults.blanket_bonus_usd, 0);
+["market", "blanket", ...LEVERS].forEach(id => $(id).addEventListener("input", render));
+$("vBefore").addEventListener("click", () => { view = "before"; $("vBefore").setAttribute("aria-pressed", "true"); $("vAfter").setAttribute("aria-pressed", "false"); render(); });
+$("vAfter").addEventListener("click", () => { view = "after"; $("vAfter").setAttribute("aria-pressed", "true"); $("vBefore").setAttribute("aria-pressed", "false"); render(); });
+$("lg1").style.background = shade(1.0).bg; $("lg2").style.background = shade(1.3).bg; $("lg3").style.background = shade(2).bg;
 render();
+}
 </script>
 </body>
 </html>

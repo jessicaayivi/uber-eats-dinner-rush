@@ -23,6 +23,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check the simulator reproduces sizing.py
+        run: |
+          pip install mini-racer
+          python src/check_simulator.py
       - name: Copy the built simulator into the site folder
         run: |
           mkdir -p public

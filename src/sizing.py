@@ -121,9 +121,12 @@ def simulate(mh, bins, curve, p, stress_load):
     blanket_cost = (np.where(wd, D + add_bl, 0) * p["blanket_bonus_usd"]).sum()
     after_bl = n * c(x * (D / (D + add_bl))[b])
 
+    # "Before" is the observed late count; the curve only says how much each lever changes it
     in_stress = stressed[b]
-    return dict(late_before=before.sum(), late_after=after.sum(), avoided=(before - after).sum(),
-                late_stressed_before=before[in_stress].sum(), late_stressed_after=after[in_stress].sum(),
+    observed, avoided = bins.late.values, before - after
+    return dict(late_before=observed.sum(), late_after=observed.sum() - avoided.sum(), avoided=avoided.sum(),
+                late_stressed_before=observed[in_stress].sum(),
+                late_stressed_after=observed[in_stress].sum() - avoided[in_stress].sum(),
                 quest_cost=quest_cost, quest_hours=add3.sum(), rebalanced_hours=add1.sum(),
                 gap_hours=gap.sum(), slack_hours=slack.sum(),
                 blanket_avoided=(before - after_bl).sum(), blanket_cost=blanket_cost)

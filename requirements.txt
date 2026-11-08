@@ -1,2 +1,3 @@
 numpy
 pandas
+mini-racer   # only for src/check_simulator.py
