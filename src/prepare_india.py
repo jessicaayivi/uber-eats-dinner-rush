@@ -15,6 +15,7 @@ Caveat: the six weather categories are almost exactly the same size (~7,500 orde
 no "rain" category, which suggests the dataset is partly synthetic. Treat it as directional.
 """
 import json
+import os
 
 import pandas as pd
 
@@ -56,6 +57,7 @@ def main():
     rows = (effect(d, "Weatherconditions", "Sunny") + effect(d, "Road_traffic_density", "Low")
             + effect(d, "Festival", "No") + effect(d, "multiple_deliveries", 0))
     table = pd.DataFrame(rows)
+    os.makedirs("data/results", exist_ok=True)
     table.to_csv("data/results/india_effects.csv", index=False)
     print(f"{len(d):,} deliveries, average {d.minutes.mean():.1f} min\n")
     print(table.to_string(index=False))
