@@ -10,13 +10,16 @@ import sys
 
 from py_mini_racer import MiniRacer
 
-# metric -> allowed difference (sizing.json rounds money and counts to whole numbers, percentages to 0.1)
+# metric -> allowed difference (sizing.json rounds counts and euros to whole numbers, rates to 0.01)
 CHECKS = {
-    "late_pct_before": 0.06, "late_pct_after": 0.06,
-    "avoided_per_week_step1": 1, "avoided_per_week_step2": 1, "avoided_per_week_step3": 1, "avoided_per_week_total": 1,
-    "quest_spend_per_week_usd": 1, "quest_cost_per_late_avoided_usd": 0.006, "plan_net_per_week_usd": 1,
-    "blanket_avoided_per_week": 1, "blanket_spend_per_week_usd": 1, "blanket_cost_per_late_avoided_usd": 0.006,
-    "blanket_net_per_week_usd": 1, "value_per_late_avoided_usd": 0.006,
+    "late_pct_before": 0.006, "late_pct_after": 0.006,
+    "avoided_per_week_merchants": 1, "avoided_per_week_refusals": 1, "avoided_per_week_stacking": 1,
+    "avoided_per_week_quests": 1, "avoided_per_week_total": 1,
+    "rerouted_orders_per_week": 1, "reroute_spend_per_week_eur": 1, "reroute_cost_per_late_avoided_eur": 0.006,
+    "quest_courier_hours_per_week": 1, "quest_spend_per_week_eur": 1, "quest_cost_per_late_avoided_eur": 0.006,
+    "plan_spend_per_week_eur": 1, "plan_net_per_week_eur": 1, "free_levers_net_per_week_eur": 1,
+    "blanket_avoided_per_week": 1, "blanket_spend_per_week_eur": 1, "blanket_cost_per_late_avoided_eur": 0.006,
+    "blanket_net_per_week_eur": 1, "value_per_late_avoided_eur": 0.006,
 }
 
 
