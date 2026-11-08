@@ -1,12 +1,98 @@
-# Winning the Dinner Rush: SLA root causes in a real food-delivery network
+# Winning the Dinner Rush: where couriers should wait in Brussels, and why deliveries run late
 
 **Jessica Ayivi** · Strategy & Operations · [jessicaayivi1@gmail.com](mailto:jessicaayivi1@gmail.com)
+
+Two linked pieces of one case, built for a marketplace operations role:
+
+1. 🗺️ **[Brussels courier-positioning map](https://jessicaayivi.github.io/uber-eats-dinner-rush/optimiser/)**: where couriers are short or idle at each hour, and which moves cut late deliveries with the same fleet. *Real Brussels inputs, simulated orders.*
+2. 🔎 **[Dinner Rush analysis](https://jessicaayivi.github.io/uber-eats-dinner-rush/)**: why deliveries miss their promised time, measured on **538,689 real orders** (Meituan), and which levers fix it profitably. *Real orders, not Belgian.*
+
+The analysis is the evidence; the map is the action: the real data shows idle couriers at the peak while busy ones stack 3+ orders, and the map shows where to put them in Brussels.
+
+- 🧮 **Code:** optimiser in [`src/optimiser/`](src/optimiser/), SQL in [`sql/analysis.sql`](sql/analysis.sql), lever model in [`src/sizing.py`](src/sizing.py)
+- 📊 **Deck:** [Winning the Dinner Rush](https://claude.ai/artifact/CSPXkXz3a7duPuGExZo2zm) (being updated to this version)
+
+---
+
+# Part 1 · Brussels courier-positioning optimiser
+
+**The question:** with the same couriers on duty, where should they wait each hour so that fewer orders arrive late? It answers two lines of the job description directly: *isolate network imbalances* and *tune core marketplace levers*.
+
+> **Real skeleton, simulated orders.** Uber's data isn't public, so I built a Brussels simulation calibrated on real public data. Geography, residents, restaurants, rain hours and the way lateness responds to courier load are real; only the individual orders are simulated, and the weekly volume is an assumption. Nothing here is Uber data.
+
+## Results
+
+| | |
+|---|---|
+| **Friday 19:00** (769 orders an hour, 163 couriers) | Late orders **128 → 115 an hour (−9.7%)**; −8.6% if 60% of couriers follow the nudge |
+| **Couriers moved** | **43 of 163**, mostly **into the Brussels Pentagon (+27)**, Ixelles (+8) and Saint-Gilles (+4), out of Molenbeek (−7), Anderlecht (−5) and Uccle (−4) |
+| **Same service, fewer couriers** | Optimally placed, **128 couriers match the service of 163 drifting ones (35 fewer, −21%)** |
+| **Rainy Friday 19:00** | Late orders 155 → 141 an hour (−9.1%): rain adds orders without adding couriers |
+| **Four simulated weeks** (7 Sep – 4 Oct 2026, real Brussels rain) | ~4,980 → ~4,460 late orders a week (**−10.5%**; −9.2% at 60% compliance) |
+| **Across the sensitivity range** | −5.6% to −13.2% a week |
+| **The honest caveat** | Spreading couriers in proportion to restaurants gets within **0.8%** of the optimum. The value is not clever maths: it is correcting the drift, every hour, at scale. |
+
+**Why the imbalance exists:** the Pentagon has **29% of Brussels' food places but 5% of its residents**; Molenbeek, Anderlecht and Schaerbeek are the reverse. Couriers finish each trip where customers live, while the next pickups are where the restaurants are.
+
+## Data
+
+| What | Source | Licence | Use |
+|---|---|---|---|
+| Statistical sectors 2025 (749 in Brussels) and population | [Statbel](https://statbel.fgov.be/en/open-data/statistical-sectors-2025) | CC BY 4.0, "Source: Statbel" (re-apportioned to hexagons) | Residents per hexagon, municipality names |
+| Restaurants, fast food, cafés (3,512) | [OpenStreetMap](https://www.openstreetmap.org/copyright) via Overpass | ODbL, © OpenStreetMap contributors | Where pickups happen |
+| Hourly weather, Brussels, Sep–Oct 2026 | [Open-Meteo](https://open-meteo.com/) archive | CC BY 4.0 | Real rain hours (37 of 364 service hours in the 4 weeks) |
+| Lateness vs courier load, minutes per order, staffing by hour | Meituan orders (Part 2) | CC BY-NC 4.0 | Calibration (aggregated) |
+| Demand shape by weekday and hour | DoorDash Kaggle data ([archive](archive/doordash_version/)) | MIT on Kaggle | A Western, dinner-peaked weekly pattern |
+
+`python src/optimiser/download.py` fetches the raw files into `data/raw/brussels/` (not committed).
+
+## Method
+
+1. **Grid** ([`grid.py`](src/optimiser/grid.py)): 252 H3 hexagons (resolution 8, ~0.74 km²), residents spread from statistical sectors by area overlap, food places counted per hexagon, grouped into **25 dispatch zones**: the 19 municipalities, with the City of Brussels split into its 7 Statbel sub-areas.
+2. **Behaviour** ([`calibrate.py`](src/optimiser/calibrate.py)): load = orders × 25 minutes with a courier ÷ 60 ÷ couriers (Little's law). On the real Meituan data, late rate = 10.6% + 6.5 pts × ln(load): **each doubling of the load adds 4.5 points of late deliveries** (floor 10.7%).
+3. **Demand** ([`demand.py`](src/optimiser/demand.py)): orders per zone and hour = weekly volume × weekday/hour shape × pickup share (70% food places, 30% residents) × +15% in rain hours. Couriers on duty follow the real network's staffing by hour. Four weeks simulated (Poisson, seed 42).
+4. **Optimiser** ([`model.py`](src/optimiser/model.py), [`optimise.py`](src/optimiser/optimise.py)): give each next courier to the zone where it removes the most late orders. Because the curve is convex in couriers, this greedy rule is exactly optimal; an integer program (PuLP / CBC) returns **the identical allocation** on three test hours. Baseline: couriers drift to where drop-offs end (in proportion to residents).
+5. **Map** ([`optimiser/index.html`](optimiser/index.html)): Leaflet on OpenStreetMap tiles; the optimiser runs live in the browser and [`check_page.py`](src/optimiser/check_page.py) confirms it matches the Python results exactly.
+
+## Assumptions and sensitivity
+
+| Input | Value | Source |
+|---|---|---|
+| Late-rate curve | 10.6% + 6.5 pts × ln(load), floor 10.7% | Data (Meituan) |
+| Minutes an order spends with a courier | 25 | Data (Meituan) |
+| Couriers on duty by hour | load 1.1–2.5, as in the real network | Data (Meituan) |
+| Demand by weekday and hour | weekly shape | Data (DoorDash) |
+| Rain hours | ≥ 0.2 mm in an hour | Data (Open-Meteo) |
+| Orders a week | 30,000 | Assumption |
+| Pickup share of a zone | 70% food places + 30% residents | Assumption |
+| Rain uplift | +15% orders, same couriers | Assumption |
+| Couriers following a nudge | 60% | Assumption |
+| Minimum per zone | 1 courier | Assumption |
+
+Each input at 70% and 130% ([`data/optimiser/sensitivity.csv`](data/optimiser/sensitivity.csv)): realised weekly reduction · Friday 19:00 at full compliance · couriers saved at equal service.
+
+| Input (default) | At 70% | At 130% |
+|---|---|---|
+| Orders a week (30,000) | 9.7% · −9.2% · 23 fewer | 8.9% · −9.3% · 44 fewer |
+| Pickup weight on food places (0.7) | 5.6% · −5.5% · 20 fewer | 13.2% · −15.0% · 54 fewer |
+| Rain uplift (+15%) | 9.2% · −9.7% · 35 fewer | 9.2% · −9.7% · 35 fewer |
+| Couriers following nudges (60%) | 7.7% · −9.7% · 35 fewer | 10.1% · −9.7% · 35 fewer |
+| Couriers on duty (100%) | 8.2% · −7.9% · 22 fewer | 10.7% · −11.8% · 50 fewer |
+| Curve slope (+4.5 pts per doubling) | 7.3% · −7.7% · 35 fewer | 10.8% · −11.4% · 35 fewer |
+| Minutes per order (25) | 9.7% · −9.2% · 23 fewer | 9.0% · −9.3% · 44 fewer |
+
+**What holds:** positioning always helps, by 5–13% a week. **What drives it:** how concentrated pickups really are; that is the first number to measure on real Uber data (pickup locations by hour).
+
+**Limitations:** zones are treated as independent (in reality couriers near a border serve both sides, which shrinks the imbalance); couriers move instantly within the hour; one weekly demand shape for all zones; the curve comes from another country's network.
+
+---
+
+# Part 2 · The evidence: why deliveries run late (real Meituan data)
 
 Why do food deliveries miss the time promised to the customer, and which marketplace levers fix it profitably? I analysed **538,689 real orders from Meituan**, each with its promised delivery time and every dispatch step, and this is how I would apply the method at Uber Eats Belgium.
 
 - 🎛️ **Interactive simulator:** [jessicaayivi.github.io/uber-eats-dinner-rush](https://jessicaayivi.github.io/uber-eats-dinner-rush/)
 - 🧮 **Analysis:** SQL in [`sql/analysis.sql`](sql/analysis.sql), lever model in [`src/sizing.py`](src/sizing.py), every assumption in [`src/assumptions.py`](src/assumptions.py)
-- 📊 **Deck:** [Winning the Dinner Rush](https://claude.ai/artifact/CSPXkXz3a7duPuGExZo2zm) (being updated to this version)
 
 > **About the data.** Meituan's public research dataset (INFORMS TSL Research Challenge): one Chinese city, 23 business districts, Monday 17 – Monday 24 October 2022, with anonymised IDs and shifted coordinates. **It is not Uber data and not Belgian data.** It has no prices, fees, pay or weather, so every euro figure here is a labelled assumption. Licence CC BY-NC 4.0; raw data is not redistributed. *This research was supported by data provided by Meituan.*
 
@@ -107,7 +193,7 @@ Each assumption at 50% and 150% of its default, everything else unchanged ([`dat
 
 **What holds:** the free levers always pay, and targeted quests beat the blanket bonus in all 26 cases (at worst €19 vs at best €62 per late delivery avoided). **What doesn't:** the paid levers only pay if a late delivery is worth far more than my default; that is the number to measure first.
 
-## Repository
+## Repository (both parts)
 
 ```
 src/download_data.sh          fetches the Meituan dataset into data/raw/meituan/ (not committed)
@@ -121,13 +207,23 @@ src/check_simulator.py        runs the simulator's JS model and checks it reprod
 src/run_all.sh                the whole pipeline
 simulator/index.html          built simulator, published by .github/workflows/pages.yml
 archive/                      the simulated and the DoorDash versions (not used)
+
+src/optimiser/download.py     Statbel, OpenStreetMap and Open-Meteo inputs -> data/raw/brussels/ (not committed)
+src/optimiser/calibrate.py    response curve, minutes per order, staffing, demand shape -> data/optimiser/calibration.json
+src/optimiser/grid.py         H3 hexagons, residents, food places, 25 zones
+src/optimiser/demand.py       simulated orders with real rain hours
+src/optimiser/model.py        lateness, greedy optimiser, baselines, moves
+src/optimiser/optimise.py     scenarios, PuLP cross-check, 4-week totals, sensitivity -> data/optimiser/results.json
+src/optimiser/build_page.py   builds optimiser/index.html
+src/optimiser/check_page.py   checks the map's JS optimiser against optimise.py (also in CI)
+optimiser/index.html          the map, published at /optimiser/
 ```
 
 ## Reproduce
 
 ```bash
 pip install -r requirements.txt
-bash src/run_all.sh
+bash src/run_all.sh      # rebuilds both parts and runs both checks
 ```
 
 ## Limitations
