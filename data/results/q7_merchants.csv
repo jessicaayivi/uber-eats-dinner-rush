@@ -1,0 +1,3 @@
+merchants,merchant_count,share_of_orders_pct,share_of_late_pct,late_pct,avg_pickup_min,avg_pickup_overrun_min,picked_up_vs_food_ready_min
+other merchants,4708,92.5,90.0,14.2,9.7,2.4,2.5
+slowest 10%,220,7.5,10.0,19.2,14.1,5.2,5.1

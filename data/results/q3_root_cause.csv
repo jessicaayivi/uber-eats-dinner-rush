@@ -1,0 +1,6 @@
+root_cause,late_orders,share_of_late_pct,avg_minutes_late,share_at_lunch_pct,share_at_dinner_pct
+lastmile,43484,55.5,4.4,33.5,39.6
+pickup,26962,34.4,4.2,35.4,37.7
+dispatch,5517,7.0,6.9,36.5,43.8
+accept,2399,3.1,6.9,27.1,47.6
+promise too tight,17,0.0,1.9,29.4,70.6

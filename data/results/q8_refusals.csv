@@ -1,0 +1,3 @@
+orders,n,share_pct,late_pct,accept_min,delivery_min,share_at_peaks_pct
+accepted first time,483200,89.7,13.5,0.4,28.9,65.8
+refused at least once,55489,10.3,23.3,2.6,34.3,76.8
