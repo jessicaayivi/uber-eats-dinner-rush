@@ -1,0 +1,249 @@
+{
+ "knee": {
+  "load": 1.2,
+  "slope_below_per_0_1": 0.802,
+  "slope_above_per_0_1": 4.631
+ },
+ "stress_load": 1.2,
+ "assumptions": {
+  "late_minutes": {
+   "value": 60,
+   "source": "data",
+   "note": "Late = over 60 min: the 'within the hour' promise, 80th percentile (prepare_doordash.py)"
+  },
+  "quiet_load": {
+   "value": 0.8,
+   "source": "data",
+   "note": "Below 0.8 outstanding orders per dasher the late rate sits at its ~8% floor (sql Q3)"
+  },
+  "basket_usd": {
+   "value": 27.02,
+   "source": "data",
+   "note": "Average order subtotal (prepare_doordash.py)"
+  },
+  "batch_delay_pct": {
+   "value": 11.1,
+   "source": "data",
+   "note": "A second order in the trip adds 11% delivery time, like-for-like (prepare_india.py, Indian data)"
+  },
+  "take_rate": {
+   "value": 0.19,
+   "source": "public",
+   "note": "Uber Q3 2026: Delivery revenue $5.5B / gross bookings $28.5B"
+  },
+  "rebalance_share": {
+   "value": 0.5,
+   "source": "assumption",
+   "note": "Share of idle quiet-hour dasher time that can be moved into stressed hours by shift planning"
+  },
+  "batch_share": {
+   "value": 0.2,
+   "source": "assumption",
+   "note": "Share of orders in stressed hours that can be paired with another order"
+  },
+  "batch_courier_saving": {
+   "value": 0.3,
+   "source": "assumption",
+   "note": "Courier time saved per paired order (Indian trip times imply up to 44%)"
+  },
+  "quest_share": {
+   "value": 0.35,
+   "source": "assumption",
+   "note": "Share of the original gap that targeted quests bring online"
+  },
+  "quest_trigger_load": {
+   "value": 1.5,
+   "source": "assumption",
+   "note": "Quests fire only where load after steps 1-2 is still above this"
+  },
+  "quest_pay_usd": {
+   "value": 5.0,
+   "source": "assumption",
+   "note": "Quest pay per extra dasher-hour"
+  },
+  "quest_leakage": {
+   "value": 0.3,
+   "source": "assumption",
+   "note": "Extra quest spend paid to dashers who would have worked anyway"
+  },
+  "blanket_bonus_usd": {
+   "value": 4.0,
+   "source": "assumption",
+   "note": "Blanket bonus per online dasher-hour, Fri-Sun 17:00-21:00"
+  },
+  "blanket_show_share": {
+   "value": 0.6,
+   "source": "assumption",
+   "note": "Share of the gap that the blanket bonus brings online"
+  },
+  "lost_orders_per_late": {
+   "value": 0.5,
+   "source": "assumption",
+   "note": "Future orders lost per late delivery (retention effect)"
+  }
+ },
+ "curve": {
+  "x": [
+   0.05,
+   0.15,
+   0.25,
+   0.35,
+   0.45,
+   0.55,
+   0.65,
+   0.75,
+   0.85,
+   0.95,
+   1.05,
+   1.15,
+   1.25,
+   1.35,
+   1.45,
+   1.55,
+   1.65,
+   1.75,
+   1.85,
+   1.95,
+   2.05,
+   2.15,
+   2.25,
+   2.35,
+   2.45
+  ],
+  "late": [
+   0.0777,
+   0.0777,
+   0.0777,
+   0.0777,
+   0.0777,
+   0.0777,
+   0.0777,
+   0.083,
+   0.0928,
+   0.1108,
+   0.1108,
+   0.1358,
+   0.1573,
+   0.196,
+   0.2373,
+   0.296,
+   0.3469,
+   0.3859,
+   0.4468,
+   0.4984,
+   0.5838,
+   0.6108,
+   0.6108,
+   0.6108,
+   0.6108
+  ],
+  "late_batched": [
+   0.128,
+   0.128,
+   0.128,
+   0.128,
+   0.128,
+   0.128,
+   0.128,
+   0.1339,
+   0.1494,
+   0.1795,
+   0.1795,
+   0.2176,
+   0.2461,
+   0.3052,
+   0.3571,
+   0.4225,
+   0.4755,
+   0.5169,
+   0.5794,
+   0.627,
+   0.7164,
+   0.7164,
+   0.7164,
+   0.7164,
+   0.7164
+  ],
+  "orders": [
+   705,
+   269,
+   920,
+   1425,
+   3847,
+   3996,
+   6189,
+   8688,
+   13022,
+   18052,
+   12529,
+   18816,
+   17309,
+   16596,
+   14220,
+   9940,
+   9670,
+   7002,
+   4548,
+   4011,
+   1182,
+   824,
+   777,
+   517,
+   1394
+  ],
+  "observed": [
+   0.1163,
+   0.0372,
+   0.0783,
+   0.0765,
+   0.0858,
+   0.0668,
+   0.0774,
+   0.083,
+   0.0928,
+   0.1151,
+   0.1046,
+   0.1358,
+   0.1573,
+   0.196,
+   0.2373,
+   0.296,
+   0.3469,
+   0.3859,
+   0.4468,
+   0.4984,
+   0.5838,
+   0.6262,
+   0.6088,
+   0.6267,
+   0.5968
+  ]
+ },
+ "plan": {
+  "value_per_late_avoided_usd": 2.57,
+  "orders_per_week": 44112,
+  "late_per_week_before": 8609,
+  "late_pct_before": 19.5,
+  "late_pct_after": 17.5,
+  "late_in_stressed_hours_per_week": [
+   5710,
+   4812
+  ],
+  "avoided_per_week_step1": 162,
+  "avoided_per_week_step2": 284,
+  "avoided_per_week_step3": 441,
+  "avoided_per_week_total": 886,
+  "gap_dasher_hours_per_week": 2772,
+  "slack_dasher_hours_per_week": 404,
+  "rebalanced_dasher_hours_per_week": 202,
+  "quest_dasher_hours_per_week": 405,
+  "quest_spend_per_week_usd": 2635,
+  "quest_cost_per_late_avoided_usd": 5.98,
+  "plan_net_per_week_usd": -361,
+  "blanket_avoided_per_week": 859,
+  "blanket_spend_per_week_usd": 34102,
+  "blanket_cost_per_late_avoided_usd": 39.71,
+  "blanket_net_per_week_usd": -31898
+ },
+ "sensitivity_holds": "20 of 20"
+}

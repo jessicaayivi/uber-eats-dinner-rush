@@ -1,5 +1,4 @@
 data/*.db
-data/sizing.json
 __pycache__/
 .venv/
 data/raw/
