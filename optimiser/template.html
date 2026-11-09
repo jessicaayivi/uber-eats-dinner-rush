@@ -89,7 +89,7 @@ footer p { margin: 0; }
     <p class="kicker">Courier positioning · Brussels-Capital Region</p>
     <h1>Where should couriers wait?</h1>
   </div>
-  <p class="byline">Pick an hour: the map shows where couriers are short or idle, and the optimiser moves the same couriers to cut late deliveries. By Jessica Ayivi. Evidence behind it: <a href="../">the Dinner Rush analysis on 538,689 real orders</a>.</p>
+  <p class="byline">Pick an hour: the map shows which zones are short of couriers and which have spare ones, and the optimiser moves the same couriers to cut late deliveries. By Jessica Ayivi. Evidence behind it: <a href="../">the Dinner Rush analysis on 538,689 real orders</a>.</p>
 </header>
 <p class="note"><b>Real skeleton, simulated orders.</b> Geography and residents (Statbel), restaurants (OpenStreetMap), rain hours (Open-Meteo, Sep–Oct 2026) and how lateness responds to courier load (Meituan's real delivery data) are real. Only the stream of orders is simulated from them, and the weekly volume is an assumption. Uber's data isn't public; nothing here is Uber data.</p>
 
@@ -139,7 +139,7 @@ footer p { margin: 0; }
     </div>
     <div id="map" role="img" aria-label="Map of Brussels hexagons coloured by courier load"></div>
     <div class="legend">
-      <span><i style="background:#CFD6CC"></i>Under 1.25: idle couriers</span>
+      <span><i style="background:#CFD6CC"></i>Under 1.25: spare couriers</span>
       <span><i id="lg1"></i>1.25–1.75</span>
       <span><i id="lg2"></i>1.75–2.5: stretched</span>
       <span><i id="lg3"></i>Over 2.5: short of couriers</span>
@@ -260,6 +260,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 const hexLayers = DATA.hexes.map(h => L.polygon(h.boundary, {weight: 0.6, color: "#FFFFFF", fillOpacity: 0.72}).addTo(map));
+map.fitBounds(L.featureGroup(hexLayers).getBounds(), {padding: [8, 8]});   // whole region on any screen size
 
 function params() {
   return {...DATA.defaults, staffing_scale: +$("staffing_scale").value, compliance: +$("compliance").value,

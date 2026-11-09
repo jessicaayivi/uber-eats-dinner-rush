@@ -4,7 +4,7 @@
 
 Two linked pieces of one case, built for a marketplace operations role:
 
-1. 🗺️ **[Brussels courier-positioning map](https://jessicaayivi.github.io/uber-eats-dinner-rush/optimiser/)**: where couriers are short or idle at each hour, and which moves cut late deliveries with the same fleet. *Real Brussels inputs, simulated orders.*
+1. 🗺️ **[Brussels courier-positioning map](https://jessicaayivi.github.io/uber-eats-dinner-rush/optimiser/)**: which zones are short of couriers and which have spare ones at each hour, and which moves cut late deliveries with the same fleet. *Real Brussels inputs, simulated orders.*
 2. 🔎 **[Dinner Rush analysis](https://jessicaayivi.github.io/uber-eats-dinner-rush/)**: why deliveries miss their promised time, measured on **538,689 real orders** (Meituan), and which levers fix it profitably. *Real orders, not Belgian.*
 
 The analysis is the evidence; the map is the action: the real data shows idle couriers at the peak while busy ones stack 3+ orders, and the map shows where to put them in Brussels.
@@ -36,7 +36,7 @@ The analysis is the evidence; the map is the action: the real data shows idle co
 |---|---|
 | ![Load by zone today](docs/brussels_friday_19h_today.png) | ![Load by zone, optimised](docs/brussels_friday_19h_optimised.png) |
 
-*Hexagons coloured by orders per courier (red = short of couriers, grey = idle). Map data © OpenStreetMap contributors. In the optimised view Haren stays red: its few orders need a single courier, so it reads as overloaded on paper.*
+*Hexagons coloured by orders per courier (red = short of couriers, grey = spare couriers). Map data © OpenStreetMap contributors. In the optimised view Haren stays red: its few orders need a single courier, so it reads as overloaded on paper.*
 
 **Why the imbalance exists:** the Pentagon has **29% of Brussels' food places but 5% of its residents**; Molenbeek, Anderlecht and Schaerbeek are the reverse. Couriers finish each trip where customers live, while the next pickups are where the restaurants are.
 
