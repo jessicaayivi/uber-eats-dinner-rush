@@ -179,7 +179,7 @@ footer p { margin: 0; }
     <p class="estimate" style="margin:6px 0 0">The map is built in five steps. Each step uses a few numbers, and each one is either <span class="tag real">measured</span> on real data, <span class="tag calc">calculated</span> by the model, or a <span class="tag guess">guess</span> that I tested higher and lower.</p>
     <ol class="steps">
       <li><b>How many orders, and where.</b> Brussels gets <span class="f-weekly"></span> orders a week, spread over the days and hours like a real week of food delivery, then across the zones: <span class="f-split"></span>. A rainy hour gets +<span class="f-rain"></span> orders. <i>On the map: the orders in "Busiest zones this hour" and in each zone's tooltip.</i></li>
-      <li><b>How many couriers, and where they are today.</b> Each hour has as many couriers, relative to its orders, as the real network had at that hour. Today, they wait where their last delivery ended, mostly where people live. <i>On the map: the "Today" view and the "Couriers today" column.</i></li>
+      <li><b>How many couriers, and where they are today.</b> First, the work that hour: orders × <span class="f-min"></span> minutes. Then, how stretched couriers are: in the real network, each courier was handling <span class="f-load-quiet"></span> orders at the same time at quiet hours and up to <span class="f-load-peak"></span> at the lunch peak. Couriers on duty = work ÷ that number. Example, Friday 19:00: <span class="f-ex-orders"></span> orders × <span class="f-min"></span> min ≈ <span class="f-ex-hours"></span> hours of courier work; real couriers handled about <span class="f-ex-load"></span> orders at once at 19:00, so about <span class="f-ex-couriers"></span> couriers. Rainy hours get more orders but the same couriers. Today, couriers wait where their last delivery ended, so they are spread like the population (at least 1 per zone). <i>On the map: the "Today" view and the "Couriers today" column; "Couriers on duty" under More settings changes the total.</i></li>
       <li><b>How busy each zone is.</b> Each order keeps a courier busy for about <span class="f-min"></span> minutes, so orders × <span class="f-min"></span> ÷ 60 ÷ couriers = how many orders each courier is handling at the same time. <i>On the map: the colour of each zone, from grey (spare couriers) to red (short of couriers).</i></li>
       <li><b>How many orders arrive late.</b> Even with free couriers, about <span class="f-floor"></span> of orders are late. Each time couriers become twice as busy, about <span class="f-dbl"></span> more orders out of 100 arrive late. <i>On the map: the "Late orders this hour" tile.</i></li>
       <li><b>Where couriers should go.</b> The optimiser moves the same couriers one at a time, each to the zone where it prevents the most late orders. <span class="f-nudge"></span> of couriers are assumed to follow the nudge. <i>On the map: the "Optimised" view, the "Fewer late orders" and "Couriers to move" tiles, and "Recommended moves".</i></li>
@@ -194,7 +194,7 @@ footer p { margin: 0; }
         <tr><td>1</td><td><span class="f-split"></span></td><td>Where orders are picked up.</td><td><span class="tag guess">guess</span> Pickups happen at restaurants, but busy neighbourhoods also order from local places.</td></tr>
         <tr><td>1</td><td>Residents, restaurants, rain</td><td>Where customers live, where food is picked up, when it rained.</td><td><span class="tag real">measured</span> Statbel 2025, OpenStreetMap, Open-Meteo (September&ndash;October 2026).</td></tr>
         <tr><td>1</td><td>+<span class="f-rain"></span> in rain</td><td>Extra orders in a rainy hour, with the same couriers.</td><td><span class="tag guess">guess</span> People order more when it rains.</td></tr>
-        <tr><td>2</td><td>Couriers on duty</td><td>How many couriers work at each hour.</td><td><span class="tag real">measured</span> As many, relative to orders, as the real network had at that hour.</td></tr>
+        <tr><td>2</td><td>Couriers on duty</td><td>How many couriers work at each hour.</td><td><span class="tag real">measured</span> Work (orders × <span class="f-min"></span> min) ÷ how many orders each courier was handling at once in the real network at that hour. The real data only shows couriers carrying orders, so the true number could be a bit higher: the "Couriers on duty" setting lets you test that.</td></tr>
         <tr><td>3</td><td><span class="f-min"></span> minutes</td><td>How long one order keeps a courier busy, from accepting it to delivering it.</td><td><span class="tag real">measured</span> The average in the real data.</td></tr>
         <tr><td>4</td><td><span class="f-floor"></span> late</td><td>Lateness that never goes away (slow kitchens, traffic), even when couriers are free.</td><td><span class="tag real">measured</span> The lowest late rate in the real data.</td></tr>
         <tr><td>4</td><td>+<span class="f-dbl"></span> late per 100 orders</td><td>When couriers become twice as busy, this many more orders out of 100 arrive late.</td><td><span class="tag real">measured</span> In thousands of real moments (a district, a half-hour), about 11% of orders were late when each courier carried about 1 order at a time, 16% at 2, 18.5% at 4 or more. I drew the simplest smooth line through those points; this is its slope.</td></tr>
@@ -366,6 +366,14 @@ fill("f-rain", fmt(D0.rain_uplift * 100) + "%");
 fill("f-nudge", fmt(D0.compliance * 100) + "%");
 fill("f-rule", DATA.rule_gap_pct);
 fill("f-range", DATA.sens_range);
+const loads = Object.values(DATA.staffing).filter((v, i) => +Object.keys(DATA.staffing)[i] >= 10 && +Object.keys(DATA.staffing)[i] <= 22);
+fill("f-load-quiet", fmt(Math.min(...loads), 1));
+fill("f-load-peak", fmt(Math.max(...loads), 1));
+const ex = scenario(DATA, D0, 4, 19, false);
+fill("f-ex-orders", fmt(ex.orders));
+fill("f-ex-hours", fmt(ex.orders * D0.minutes_with_courier / 60));
+fill("f-ex-load", fmt(DATA.staffing[19], 1));
+fill("f-ex-couriers", fmt(ex.couriers));
 ["dow", "hour", "rain", "staffing_scale", "compliance", "weekly_orders"].forEach(id => $(id).addEventListener("input", render));
 $("vToday").addEventListener("click", () => { view = "today"; $("vToday").setAttribute("aria-pressed", "true"); $("vOpt").setAttribute("aria-pressed", "false"); render(); });
 $("vOpt").addEventListener("click", () => { view = "optimised"; $("vOpt").setAttribute("aria-pressed", "true"); $("vToday").setAttribute("aria-pressed", "false"); render(); });
