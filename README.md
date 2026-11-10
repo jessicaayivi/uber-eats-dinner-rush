@@ -4,8 +4,8 @@
 
 Two linked pieces of one case, built for a marketplace operations role:
 
-1. 🗺️ **[Brussels courier-positioning map](https://jessicaayivi.github.io/uber-eats-dinner-rush/optimiser/)**: which zones are short of couriers and which have spare ones at each hour, and which moves cut late deliveries with the same fleet. *Real Brussels inputs, simulated orders.*
-2. 🔎 **[Dinner Rush analysis](https://jessicaayivi.github.io/uber-eats-dinner-rush/)**: why deliveries miss their promised time, measured on **538,689 real orders** (Meituan), and which levers fix it profitably. *Real orders, not Belgian.*
+1. 🗺️ **[Brussels courier-positioning map](https://jessicaayivi.github.io/uber-eats-dinner-rush/)**: which zones are short of couriers and which have spare ones at each hour, and which moves cut late deliveries with the same fleet. *Real Brussels inputs, simulated orders.*
+2. 🔎 **[Dinner Rush analysis](#part-2--the-evidence-why-deliveries-run-late-real-meituan-data)** (Part 2 below): why deliveries miss their promised time, measured on **538,689 real orders** (Meituan), and which levers fix it profitably. *Real orders, not Belgian.*
 
 The analysis is the evidence; the map is the action: the real data shows idle couriers at the peak while busy ones stack 3+ orders, and the map shows where to put them in Brussels.
 
@@ -97,7 +97,7 @@ Each input at 70% and 130% ([`data/optimiser/sensitivity.csv`](data/optimiser/se
 
 Why do food deliveries miss the time promised to the customer, and which marketplace levers fix it profitably? I analysed **538,689 real orders from Meituan**, each with its promised delivery time and every dispatch step, and this is how I would apply the method at Uber Eats Belgium.
 
-- 🎛️ **Interactive simulator:** [jessicaayivi.github.io/uber-eats-dinner-rush](https://jessicaayivi.github.io/uber-eats-dinner-rush/)
+- 🎛️ **Interactive simulator:** [`simulator/index.html`](simulator/index.html) in this repository (download and open it in a browser; it is no longer published, to keep the website focused on the map)
 - 🧮 **Analysis:** SQL in [`sql/analysis.sql`](sql/analysis.sql), lever model in [`src/sizing.py`](src/sizing.py), every assumption in [`src/assumptions.py`](src/assumptions.py)
 
 > **About the data.** Meituan's public research dataset (INFORMS TSL Research Challenge): one Chinese city, 23 business districts, Monday 17 – Monday 24 October 2022, with anonymised IDs and shifted coordinates. **It is not Uber data and not Belgian data.** It has no prices, fees, pay or weather, so every euro figure here is a labelled assumption. Licence CC BY-NC 4.0; raw data is not redistributed. *This research was supported by data provided by Meituan.*
@@ -211,7 +211,7 @@ src/sizing.py                 load curves, levers, blanket comparison, sensitivi
 src/build_simulator.py        injects the aggregated tables and curves into simulator/template.html
 src/check_simulator.py        runs the simulator's JS model and checks it reproduces sizing.py (also in CI)
 src/run_all.sh                the whole pipeline
-simulator/index.html          built simulator, published by .github/workflows/pages.yml
+simulator/index.html          built simulator (kept in the repo, not published)
 archive/                      the simulated and the DoorDash versions (not used)
 
 src/optimiser/download.py     Statbel, OpenStreetMap and Open-Meteo inputs -> data/raw/brussels/ (not committed)
@@ -222,7 +222,7 @@ src/optimiser/model.py        lateness, greedy optimiser, baselines, moves
 src/optimiser/optimise.py     scenarios, PuLP cross-check, 4-week totals, sensitivity -> data/optimiser/results.json
 src/optimiser/build_page.py   builds optimiser/index.html
 src/optimiser/check_page.py   checks the map's JS optimiser against optimise.py (also in CI)
-optimiser/index.html          the map, published at /optimiser/
+optimiser/index.html          the map, published as the website's home page (and at /optimiser/)
 ```
 
 ## Reproduce
