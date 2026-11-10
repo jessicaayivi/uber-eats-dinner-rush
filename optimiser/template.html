@@ -93,6 +93,14 @@ ol.steps ul { margin: 6px 0 4px; padding-left: 18px; display: flex; flex-directi
 h3.subhead { font-family: var(--display); font-size: 15px; font-weight: 700; margin: 18px 0 0; }
 @media (max-width: 620px) { table.sources td:first-child { white-space: normal; } }
 .leaflet-tooltip { font-family: var(--body); font-size: 13px; }
+.zlabel span { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; font-family: var(--body); font-size: 12px; font-weight: 600;
+  background: #FFFFFF; color: #171B22; border: 1px solid #171B22; border-radius: 99px; padding: 1px 8px; pointer-events: none; }
+.zlabel span.gain { background: #171B22; color: #FFFFFF; }
+.zlabel.dim span { opacity: 0.25; }
+.legend .ln { width: 22px; height: 0; border-radius: 0; border-top: 3px solid var(--ink); }
+.legend .ln.dash { border-top-style: dashed; }
+ol.moves li { cursor: default; border-radius: 4px; padding: 0 4px; }
+ol.moves li:hover, ol.moves li:focus { background: var(--accent-soft); outline: none; }
 footer { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; max-width: 110ch; }
 footer p { margin: 0; }
 </style>
@@ -163,12 +171,17 @@ footer p { margin: 0; }
       <span><i id="lg2"></i>1.75–2.5: stretched</span>
       <span><i id="lg3"></i>Over 2.5: short of couriers</span>
     </div>
+    <div class="legend" style="padding-top:0">
+      <span><i class="ln"></i>Zone that gets couriers</span>
+      <span><i class="ln dash"></i>Zone that gives couriers</span>
+      <span>Labels show the change in couriers. Hover a suggested shift below to see it on the map.</span>
+    </div>
   </section>
 
   <div class="two">
     <section class="panel" aria-labelledby="movesTitle">
       <h2 id="movesTitle">Suggested shifts between zones</h2>
-      <p class="estimate" style="margin:6px 0 0">Where couriers should wait, zone by zone, compared with the assumed baseline. These are planning suggestions, not dispatch instructions: they don't include the time it takes to ride from one zone to another.</p>
+      <p class="estimate" style="margin:6px 0 0">Where couriers should wait, zone by zone, compared with the assumed baseline. These are planning suggestions, not dispatch instructions: they don't include the time it takes to ride from one zone to another. Hover a line to see both zones on the map.</p>
       <ol class="moves" id="moves"></ol>
     </section>
     <section class="panel" aria-labelledby="zonesTitle">
@@ -327,6 +340,35 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const hexLayers = DATA.hexes.map(h => L.polygon(h.boundary, {weight: 0.6, color: "#FFFFFF", fillOpacity: 0.72}).addTo(map));
 map.fitBounds(L.featureGroup(hexLayers).getBounds(), {padding: [8, 8]});   // whole region on any screen size
 
+// Zone outlines: keep the hexagon edges that are not shared with another hexagon of the same zone
+const zoneEdges = DATA.zones.map(() => new Map());
+DATA.hexes.forEach(h => h.boundary.forEach((a, i) => {
+  const b = h.boundary[(i + 1) % h.boundary.length], key = [String(a), String(b)].sort().join("|");
+  const edges = zoneEdges[h.zone];
+  edges.has(key) ? edges.delete(key) : edges.set(key, [a, b]);
+}));
+const zoneLines = zoneEdges.map(e => L.polyline([...e.values()], {color: "#171B22", weight: 3, interactive: false}));
+const zoneCentre = DATA.zones.map((z, i) => {
+  const pts = DATA.hexes.filter(h => h.zone === i).flatMap(h => h.boundary);
+  return [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length];
+});
+const zoneLabels = DATA.zones.map((z, i) => L.marker(zoneCentre[i], {interactive: false, keyboard: false,
+  icon: L.divIcon({className: "zlabel", iconSize: [0, 0], html: "<span></span>"})}));
+let shownZones = new Set();
+
+function highlightZones(net, pair) {        // net: couriers optimised minus assumed today; pair: [from, to] to emphasise, or null
+  DATA.zones.forEach((z, i) => {
+    const on = shownZones.has(i), focus = !pair || pair.includes(i);
+    if (!on) { zoneLines[i].remove(); zoneLabels[i].remove(); return; }
+    zoneLines[i].setStyle({dashArray: net[i] < 0 ? "6 5" : null, weight: pair && focus ? 5 : 3, opacity: focus ? 1 : 0.25}).addTo(map);
+    zoneLabels[i].addTo(map);
+    const el = zoneLabels[i].getElement();
+    el.classList.toggle("dim", !focus);
+    el.firstChild.className = net[i] > 0 ? "gain" : "";
+    el.firstChild.textContent = `${z.zone} ${net[i] > 0 ? "+" : "−"}${Math.abs(net[i])}`;
+  });
+}
+
 function params() {
   return {...DATA.defaults, staffing_scale: +$("staffing_scale").value, compliance: +$("compliance").value,
           weekly_orders: +$("weekly_orders").value};
@@ -359,9 +401,20 @@ function render() {
   });
 
   const list = s.moves.slice().sort((a, b) => b[2] - a[2]).slice(0, 8);
-  $("moves").innerHTML = list.length ? list.map(([a, b, k]) => `<li>Move <b>${k}</b> courier${k > 1 ? "s" : ""} from ${a} to ${b}</li>`).join("")
+  $("moves").innerHTML = list.length ? list.map(([a, b, k]) => `<li tabindex="0" data-from="${a}" data-to="${b}">Move <b>${k}</b> courier${k > 1 ? "s" : ""} from ${a} to ${b}</li>`).join("")
     + (s.moves.length > 8 ? `<li style="list-style:none;color:var(--muted)">+ ${s.moves.length - 8} smaller moves</li>` : "")
     : "<li style='list-style:none'>No moves needed.</li>";
+  // Outline and label the zones named in the suggested shifts
+  const net = s.allocation.optimised.map((c, i) => c - s.allocation.drift[i]);
+  const idx = Object.fromEntries(DATA.zones.map((z, i) => [z.zone, i]));
+  shownZones = new Set(list.flatMap(([a, b]) => [idx[a], idx[b]]));
+  highlightZones(net, null);
+  document.querySelectorAll("#moves li[data-from]").forEach(li => {
+    const pair = [idx[li.dataset.from], idx[li.dataset.to]];
+    const on = () => highlightZones(net, pair), off = () => highlightZones(net, null);
+    li.addEventListener("mouseenter", on); li.addEventListener("focus", on);
+    li.addEventListener("mouseleave", off); li.addEventListener("blur", off);
+  });
   const top = DATA.zones.map((z, i) => i).sort((i, j) => s.zone_orders[j] - s.zone_orders[i]).slice(0, 8);
   $("zones").innerHTML = top.map(i => `<tr><td>${DATA.zones[i].zone}</td><td>${fmt(s.zone_orders[i], 1)}</td><td>${s.allocation.drift[i]}</td><td>${s.allocation.optimised[i]}</td></tr>`).join("");
 }
