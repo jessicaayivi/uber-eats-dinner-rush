@@ -145,7 +145,6 @@ footer p { margin: 0; }
     <div class="tile"><span class="lab">Fewer late orders</span><span class="val" id="kImpr"></span><span class="sub" id="kImprSub"></span></div>
     <div class="tile"><span class="lab">Couriers to move</span><span class="val" id="kMove"></span><span class="sub" id="kMoveSub"></span></div>
   </section>
-  <p class="estimate" id="kRule"></p>
   <p class="estimate">Model estimates from simulated orders, not measured Uber results. A live test would confirm them.</p>
 
   <section class="panel mapbox" aria-labelledby="mapTitle">
@@ -153,7 +152,6 @@ footer p { margin: 0; }
       <h2 id="mapTitle">Orders per courier (load), by zone</h2>
       <div class="seg" role="group" aria-label="Show couriers">
         <button type="button" id="vToday" aria-pressed="true">Assumed today</button>
-        <button type="button" id="vRule" aria-pressed="false">Restaurant rule</button>
         <button type="button" id="vOpt" aria-pressed="false">Optimised</button>
       </div>
     </div>
@@ -175,7 +173,7 @@ footer p { margin: 0; }
     </section>
     <section class="panel" aria-labelledby="zonesTitle">
       <h2 id="zonesTitle">Busiest zones this hour</h2>
-      <table class="zones"><thead><tr><th scope="col">Zone</th><th scope="col">Orders</th><th scope="col">Assumed today</th><th scope="col">Restaurant rule</th><th scope="col">Optimised</th></tr></thead><tbody id="zones"></tbody></table>
+      <table class="zones"><thead><tr><th scope="col">Zone</th><th scope="col">Orders</th><th scope="col">Assumed today</th><th scope="col">Optimised</th></tr></thead><tbody id="zones"></tbody></table>
     </section>
   </div>
 
@@ -219,7 +217,7 @@ footer p { margin: 0; }
           <li>Couriers choose where they wait, so the platform can only encourage them, for example with a heatmap or a small bonus. I assume <span class="f-nudge-10"></span> in 10 couriers follow that advice <span class="tag guess">guess</span>.</li>
           <li>A much simpler rule, "put couriers where the restaurants are", does almost as well. At Friday 19:00 it leaves only <span class="f-rule"></span> more late orders than the best placement: about <span class="f-ex-late-food"></span> late orders an hour instead of <span class="f-ex-late-opt"></span> <span class="tag calc">calculated</span>. So the value isn't clever maths: it's moving couriers back towards the restaurants every hour, because they keep drifting away.</li>
         </ul>
-        <i>You see it in the "Restaurant rule" and "Optimised" views, the "Fewer late orders" and "Couriers to move" boxes, and "Suggested shifts between zones".</i></li>
+        <i>You see it in the "Optimised" view, the "Fewer late orders" and "Couriers to move" boxes, and "Suggested shifts between zones".</i></li>
     </ol>
     <p class="estimate" style="margin:14px 0 0"><b>Testing the guesses:</b> I made each guess 30% bigger and 30% smaller. Every time, the map still cut late orders over four weeks by between <span class="f-range"></span>. So the conclusion doesn't depend on any one guess being exactly right.</p>
     <p class="estimate" style="margin:8px 0 0"><b>About the number of couriers:</b> the lateness rule and the courier count use the same measure from the real data (couriers who are carrying orders), so they match each other. The real number of couriers online, including those waiting with nothing to do, would be higher than the map's count. You can test a different number with "Couriers on duty" under More settings.</p>
@@ -351,15 +349,13 @@ function render() {
   $("kMove").textContent = fmt(s.moved);
   $("kMoveSub").textContent = "of " + fmt(s.couriers) + " on duty";
 
-  const alloc = view === "today" ? s.allocation.drift : view === "rule" ? s.allocation.food : s.allocation.optimised;
+  const alloc = view === "today" ? s.allocation.drift : s.allocation.optimised;
   $("viewNote").textContent = VIEW_NOTES[view];
-  const pctRule = s.late_drift > 0 ? 100 * (1 - s.late_food / s.late_drift) : 0;
-  $("kRule").innerHTML = `<b>Simple alternative:</b> spreading the same couriers like the restaurants gives ${fmt(s.late_food)} late orders this hour (−${fmt(pctRule, 1)}%), almost as good as the optimised placement (${fmt(s.late_optimised)}).`;
   const load = s.zone_orders.map((o, i) => o * p.minutes_with_courier / 60 / Math.max(alloc[i], 1e-9));
   DATA.hexes.forEach((h, k) => {
     const z = h.zone, zone = DATA.zones[z];
     hexLayers[k].setStyle({fillColor: colour(load[z])});
-    hexLayers[k].bindTooltip(`<b>${zone.zone}</b><br>${fmt(s.zone_orders[z], 1)} orders this hour<br>Couriers: ${s.allocation.drift[z]} assumed today · ${s.allocation.food[z]} restaurant rule · ${s.allocation.optimised[z]} optimised<br>Load ${fmt(load[z], 2)} orders per courier<br>${fmt(h.residents)} residents, ${h.food_places} food places in this hexagon`, {sticky: true});
+    hexLayers[k].bindTooltip(`<b>${zone.zone}</b><br>${fmt(s.zone_orders[z], 1)} orders this hour<br>Couriers: ${s.allocation.drift[z]} assumed today → ${s.allocation.optimised[z]} optimised<br>Load ${fmt(load[z], 2)} orders per courier<br>${fmt(h.residents)} residents, ${h.food_places} food places in this hexagon`, {sticky: true});
   });
 
   const list = s.moves.slice().sort((a, b) => b[2] - a[2]).slice(0, 8);
@@ -367,7 +363,7 @@ function render() {
     + (s.moves.length > 8 ? `<li style="list-style:none;color:var(--muted)">+ ${s.moves.length - 8} smaller moves</li>` : "")
     : "<li style='list-style:none'>No moves needed.</li>";
   const top = DATA.zones.map((z, i) => i).sort((i, j) => s.zone_orders[j] - s.zone_orders[i]).slice(0, 8);
-  $("zones").innerHTML = top.map(i => `<tr><td>${DATA.zones[i].zone}</td><td>${fmt(s.zone_orders[i], 1)}</td><td>${s.allocation.drift[i]}</td><td>${s.allocation.food[i]}</td><td>${s.allocation.optimised[i]}</td></tr>`).join("");
+  $("zones").innerHTML = top.map(i => `<tr><td>${DATA.zones[i].zone}</td><td>${fmt(s.zone_orders[i], 1)}</td><td>${s.allocation.drift[i]}</td><td>${s.allocation.optimised[i]}</td></tr>`).join("");
 }
 
 for (const [id, v] of [["hour", 19], ["staffing_scale", DATA.defaults.staffing_scale], ["compliance", DATA.defaults.compliance], ["weekly_orders", DATA.defaults.weekly_orders]]) $(id).value = v;
@@ -402,10 +398,9 @@ fill("f-ex-late-opt", fmt(ex.late_optimised));
 ["dow", "hour", "rain", "staffing_scale", "compliance", "weekly_orders"].forEach(id => $(id).addEventListener("input", render));
 const VIEW_NOTES = {
   today: "Assumed today: couriers spread mainly like the population, because deliveries end at people's homes. Uber's actual courier positioning is unknown.",
-  rule: "Restaurant rule: the same couriers, spread like the restaurants. A simple rule anyone could apply.",
   optimised: "Optimised: the same couriers, placed one at a time where each prevents the most late orders.",
 };
-const VIEW_BUTTONS = {today: "vToday", rule: "vRule", optimised: "vOpt"};
+const VIEW_BUTTONS = {today: "vToday", optimised: "vOpt"};
 for (const [name, id] of Object.entries(VIEW_BUTTONS)) {
   $(id).addEventListener("click", () => {
     view = name;
