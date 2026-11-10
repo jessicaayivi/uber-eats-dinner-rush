@@ -40,7 +40,7 @@ The SQL behind these findings is in [`sql/analysis.sql`](sql/analysis.sql), with
 
 - **Real inputs:** where people live (Statbel), where restaurants are (OpenStreetMap), when it rained (Open-Meteo), and how lateness grows when couriers are busy (the Meituan data).
 - **Simulated:** the orders themselves, from an assumed 30,000 orders a week.
-- **Key assumption:** couriers wait where their last delivery ended (where customers live), while pickups are mostly in the centre, which has 29% of Brussels' restaurants but 5% of its residents.
+- **Key assumption:** couriers wait where their last delivery ended (where people live), while pickups are mostly in the centre, which has 29% of Brussels' restaurants but 5% of its residents.
 - **Result, in my model:** at Friday 19:00, moving 43 of 163 couriers gives about **10% fewer late orders** with the same couriers. A simple rule, spreading couriers like the restaurants, gets almost the same result.
 
 ## 3. How I would test it
@@ -59,7 +59,7 @@ The SQL behind these findings is in [`sql/analysis.sql`](sql/analysis.sql), with
 | How lateness grows when couriers are busy | +15% orders when it rains |
 | How long an order keeps a courier busy (25 min) | 60% of couriers follow a nudge |
 
-The limits I would check first: the real data comes from China, not Belgium; zones are treated as separate; couriers don't move instantly.
+The limits I would check first: the real data comes from China, not Belgium; residents stand in for customers (not every resident orders, and people who work or study in an area order too); zones are treated as separate; couriers don't move instantly.
 
 ## How the repository is organised
 

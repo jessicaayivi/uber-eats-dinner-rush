@@ -36,13 +36,13 @@ The analysis is the evidence; the map is the action: the real data shows idle co
 | **Across the sensitivity range** | −5.6% to −13.2% a week |
 | **The honest caveat** | Spreading couriers in proportion to restaurants gets within **0.8%** of the optimum. The value is not clever maths: it is correcting the drift, every hour, at scale. |
 
-| Friday 19:00, today (couriers drift to where customers live) | Friday 19:00, optimised (same 163 couriers) |
+| Friday 19:00, today (couriers drift to where people live) | Friday 19:00, optimised (same 163 couriers) |
 |---|---|
 | ![Load by zone today](brussels_friday_19h_today.png) | ![Load by zone, optimised](brussels_friday_19h_optimised.png) |
 
 *Hexagons coloured by orders per courier (red = short of couriers, grey = spare couriers). Map data © OpenStreetMap contributors. In the optimised view Haren stays red: its few orders need a single courier, so it reads as overloaded on paper.*
 
-**Why the imbalance exists:** the Pentagon has **29% of Brussels' food places but 5% of its residents**; Molenbeek, Anderlecht and Schaerbeek are the reverse. Couriers finish each trip where customers live, while the next pickups are where the restaurants are.
+**Why the imbalance exists:** the Pentagon has **29% of Brussels' food places but 5% of its residents**; Molenbeek, Anderlecht and Schaerbeek are the reverse. Couriers finish each trip where people live, while the next pickups are where the restaurants are.
 
 ## Data
 
@@ -93,7 +93,7 @@ Each input at 70% and 130% ([`data/optimiser/sensitivity.csv`](../data/optimiser
 
 **What holds:** positioning always helps, by 5–13% a week. **What drives it:** how concentrated pickups really are; that is the first number to measure on real Uber data (pickup locations by hour).
 
-**Limitations:** zones are treated as independent (in reality couriers near a border serve both sides, which shrinks the imbalance); couriers move instantly within the hour; one weekly demand shape for all zones; the curve comes from another country's network.
+**Limitations:** residents stand in for customers (population is used for where couriers wait today, 30% of where orders start, and the restaurant gap; not every resident orders, and people who work or study in an area order too, so real order data could show more potential customers elsewhere); zones are treated as independent (in reality couriers near a border serve both sides, which shrinks the imbalance); couriers move instantly within the hour; one weekly demand shape for all zones; the curve comes from another country's network.
 
 ---
 
@@ -220,7 +220,7 @@ The map is a first step built on public information. Three things would sharpen 
 | Schaerbeek | 446 | ~73 |
 | Brussels Pentagon (comparison) | 63 | 828 above average |
 
-Molenbeek, Anderlecht and Uccle are also the zones the optimiser takes couriers from. Limits: all food places, not app partners; customers choose a cuisine, not the nearest restaurant; recruitment takes months; the map doesn't model trip distance, so the time saved isn't quantified.
+Molenbeek, Anderlecht and Uccle are also the zones the optimiser takes couriers from. Limits: all food places, not app partners; residents, not actual customers; customers choose a cuisine, not the nearest restaurant; recruitment takes months; the map doesn't model trip distance, so the time saved isn't quantified.
 
 ## Repository (both parts)
 
