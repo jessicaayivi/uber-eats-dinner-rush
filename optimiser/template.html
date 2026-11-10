@@ -165,7 +165,7 @@ footer p { margin: 0; }
   </div>
 
   <footer>
-    <p><b>Method.</b> Load in a zone = orders × <span id="minTxt"></span> minutes with a courier ÷ 60 ÷ couriers there. Late rate = <span id="curveTxt"></span>, fitted on Meituan's real delivery data: each doubling of load adds <span id="dblTxt"></span> points. "Today" assumes couriers drift to where their last drop-off ended (in proportion to residents); pickups follow food places (70%) and residents (30%). The optimiser gives each next courier to the zone where it removes the most late orders, which is optimal for this curve (checked against an integer program). A simple rule, couriers in proportion to restaurants, gets within <span id="ruleTxt"></span> of the optimum: the gain comes from correcting drift every hour.</p>
+    <p><b>How it works, in plain words.</b> Each zone's colour shows how busy its couriers are: on average, how many orders each courier is handling at the same time. Real delivery data shows that when couriers become twice as busy, about <span id="dblTxt"></span> more orders out of every 100 arrive late. "Today" assumes couriers wait where their last delivery ended, which is mostly where people live, while most pickups are at restaurants. The optimiser then moves couriers one at a time, each to the zone where it prevents the most late orders (a professional maths solver gives the same answer). A simple rule, spreading couriers like the restaurants, gets almost the same result (within <span id="ruleTxt"></span>): the value is in correcting the drift every hour.</p>
     <p><b>Sources.</b> Source: Statbel (statistical sectors and population 2025, CC BY 4.0; residents re-apportioned to hexagons). Restaurants © OpenStreetMap contributors (ODbL). Weather data by Open-Meteo.com (CC BY 4.0). Delivery behaviour: Meituan INFORMS TSL data (CC BY-NC 4.0); this research was supported by data provided by Meituan. Demand shape: DoorDash ETA dataset (Kaggle). Map tiles © OpenStreetMap contributors. Independent analysis by Jessica Ayivi; not affiliated with Uber, Meituan or DoorDash.</p>
   </footer>
 </main>
@@ -311,8 +311,6 @@ for (const [id, v] of [["hour", 19], ["staffing_scale", DATA.defaults.staffing_s
 $("dow").value = "4";
 $("rainTxt").textContent = "+" + fmt(DATA.defaults.rain_uplift * 100) + "%";
 $("rainReal").textContent = `In Brussels, ${DATA.rain.rainy} of ${DATA.rain.hours} service hours were rainy on 7 Sep–4 Oct 2026.`;
-$("minTxt").textContent = fmt(DATA.defaults.minutes_with_courier, 0);
-$("curveTxt").textContent = `${fmt(DATA.defaults.curve_a * 100, 1)}% + ${fmt(DATA.defaults.curve_b * 100, 1)} pts × ln(load), at least ${fmt(DATA.defaults.curve_floor * 100, 1)}%`;
 $("dblTxt").textContent = fmt(DATA.defaults.curve_b * Math.log(2) * 100, 1);
 $("ruleTxt").textContent = DATA.rule_gap_pct;
 ["dow", "hour", "rain", "staffing_scale", "compliance", "weekly_orders"].forEach(id => $(id).addEventListener("input", render));
