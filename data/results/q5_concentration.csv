@@ -1,4 +1,4 @@
-unit,worst_pct,pct_of_late,pct_of_orders
-district-half-hours,5.0,44.6,31.7
-district-half-hours,10.0,60.5,45.6
-district-half-hours,20.0,78.2,63.5
+worst_pct,pct_of_late,pct_of_orders
+5,44.6,31.7
+10,60.5,45.6
+20,78.2,63.5

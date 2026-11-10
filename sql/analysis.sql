@@ -11,29 +11,17 @@
 
 -- Q1. District scorecard
 -- name: q1_district
--- I wanted one row per district with the numbers an ops manager would check first.
--- SQLite has no PERCENTILE function, so I compute the 90th percentile of delivery time by hand:
---   1. "ranked" numbers every order inside its district from fastest to slowest (rn) and counts the district (n);
---   2. "p90" keeps the first delivery time whose rank reaches 90% of the district: 9 in 10 orders are faster.
-WITH ranked AS (
-  SELECT da_id, total_min,
-         ROW_NUMBER() OVER (PARTITION BY da_id ORDER BY total_min) AS rn,
-         COUNT(*)     OVER (PARTITION BY da_id)                    AS n
-  FROM orders
-), p90 AS (
-  SELECT da_id, MIN(CASE WHEN rn >= 0.9 * n THEN total_min END) AS p90_minutes FROM ranked GROUP BY da_id
-)
-SELECT o.da_id                                          AS district,
-       CAST(COUNT(*) * 7 / 8 AS INT)                    AS orders_per_week,      -- 8 days of data scaled to a 7-day week
-       ROUND(100.0 * AVG(o.is_late), 1)                 AS late_pct,
-       ROUND(100.0 * AVG(o.late_min > 5), 1)            AS late_over_5min_pct,   -- the comparison returns 1/0, so AVG = share
-       ROUND(AVG(o.promise_min), 1)                     AS avg_promise_min,
-       ROUND(AVG(o.total_min), 1)                       AS avg_delivery_min,
-       ROUND(p.p90_minutes, 1)                          AS p90_delivery_min,
-       ROUND(100.0 * AVG(o.redispatched), 1)            AS redispatched_pct,     -- refused by a courier at least once
-       ROUND(AVG(o.wave_orders), 2)                     AS avg_run_size_per_order -- how many orders the courier carried in that run
-FROM orders o JOIN p90 p USING (da_id)
-GROUP BY o.da_id
+-- One row per district with the numbers an ops manager would check first, worst districts on top.
+SELECT da_id                                   AS district,
+       COUNT(*) * 7 / 8                        AS orders_per_week,         -- 8 days of data scaled to a 7-day week
+       ROUND(100.0 * AVG(is_late), 1)          AS late_pct,                -- is_late is 1 or 0, so AVG = share of late orders
+       ROUND(100.0 * AVG(late_min > 5), 1)     AS late_over_5min_pct,      -- (late_min > 5) is also 1 or 0
+       ROUND(AVG(promise_min), 1)              AS avg_promise_min,
+       ROUND(AVG(total_min), 1)                AS avg_delivery_min,
+       ROUND(100.0 * AVG(redispatched), 1)     AS redispatched_pct,        -- refused by a courier at least once
+       ROUND(AVG(wave_orders), 2)              AS avg_run_size_per_order   -- orders the courier carried in the same run
+FROM orders
+GROUP BY da_id
 ORDER BY late_pct DESC;
 
 -- Q2. When it breaks: hour of day, weekdays vs weekend
@@ -91,23 +79,23 @@ GROUP BY is_late;
 -- Q5. Concentration: share of late orders in the worst district-half-hours (by date)
 -- name: q5_concentration
 -- Question: are late orders spread everywhere, or packed into a few bad moments?
--- I rank every district-half-hour from most late orders to fewest, then keep running totals as I go down the list
--- ("ROWS UNBOUNDED PRECEDING" = add up everything from the top of the list down to this row).
--- Reading the totals at the 5%, 10% and 20% marks tells me what share of all late orders the worst moments hold,
--- and what share of all orders they represent (so I can see it isn't just because those moments are busy).
-WITH s AS (
+-- Step 1: rank every district-half-hour from the most late orders to the fewest (1 = the worst).
+-- Step 2: for each cut-off (the worst 5%, 10% and 20% of half-hours), add up the late orders and all the orders
+--         inside it, and divide by the totals. If 10% of half-hours hold 60% of late orders, they are concentrated.
+--         I show the share of all orders too, to check it isn't only because those half-hours are busier.
+WITH ranked AS (
   SELECT late, orders,
-         ROW_NUMBER() OVER (ORDER BY late DESC)                          AS rnk,          -- 1 = the worst half-hour
-         COUNT(*)     OVER ()                                            AS n,            -- how many half-hours in total
-         SUM(late)    OVER (ORDER BY late DESC ROWS UNBOUNDED PRECEDING) AS cum_late,     -- running total of late orders
-         SUM(orders)  OVER (ORDER BY late DESC ROWS UNBOUNDED PRECEDING) AS cum_orders,   -- running total of all orders
-         SUM(late)    OVER ()                                            AS total_late,
-         SUM(orders)  OVER ()                                            AS total_orders
+         ROW_NUMBER() OVER (ORDER BY late DESC) AS rnk,            -- 1 = the half-hour with the most late orders
+         COUNT(*)     OVER ()                   AS n_half_hours    -- how many half-hours in total
   FROM slots_by_date
-)
-SELECT 'district-half-hours' AS unit, ROUND(100.0 * rnk / n) AS worst_pct,
-       ROUND(100.0 * cum_late / total_late, 1) AS pct_of_late, ROUND(100.0 * cum_orders / total_orders, 1) AS pct_of_orders
-FROM s WHERE rnk IN (CAST(n * 0.05 AS INT), CAST(n * 0.10 AS INT), CAST(n * 0.20 AS INT));
+),
+cutoffs(worst_pct) AS (VALUES (5), (10), (20))
+SELECT c.worst_pct,
+       ROUND(100.0 * SUM(CASE WHEN r.rnk <= r.n_half_hours * c.worst_pct / 100 THEN r.late END)   / SUM(r.late), 1)   AS pct_of_late,
+       ROUND(100.0 * SUM(CASE WHEN r.rnk <= r.n_half_hours * c.worst_pct / 100 THEN r.orders END) / SUM(r.orders), 1) AS pct_of_orders
+FROM ranked r CROSS JOIN cutoffs c   -- every half-hour is checked once against each cut-off
+GROUP BY c.worst_pct
+ORDER BY c.worst_pct;
 
 -- Q6. Batching: late rate by orders in the courier's run, raw and like-for-like
 --     (like-for-like compares with single-order runs in the same district and hour)
