@@ -81,6 +81,13 @@ table.zones { width: 100%; border-collapse: collapse; font-size: 13px; font-vari
 table.zones th, table.zones td { padding: 4px 6px; text-align: right; border-bottom: 1px solid var(--line); }
 table.zones th:first-child, table.zones td:first-child { text-align: left; }
 table.zones th { color: var(--muted); font-weight: 500; }
+table.sources { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+table.sources th, table.sources td { padding: 8px 6px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+table.sources th { color: var(--muted); font-weight: 500; font-size: 13px; }
+table.sources td:first-child { font-weight: 600; white-space: nowrap; }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 99px; border: 1px solid; }
+.tag.real { color: var(--good); } .tag.calc { color: var(--cool); } .tag.guess { color: var(--accent); }
+@media (max-width: 620px) { table.sources td:first-child { white-space: normal; } }
 .leaflet-tooltip { font-family: var(--body); font-size: 13px; }
 footer { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; max-width: 110ch; }
 footer p { margin: 0; }
@@ -163,6 +170,30 @@ footer p { margin: 0; }
       <table class="zones"><thead><tr><th scope="col">Zone</th><th scope="col">Orders</th><th scope="col">Couriers today</th><th scope="col">Optimised</th></tr></thead><tbody id="zones"></tbody></table>
     </section>
   </div>
+
+  <section class="panel" aria-labelledby="srcTitle">
+    <h2 id="srcTitle">Where the numbers come from</h2>
+    <p class="estimate" style="margin:6px 0 0">Every number is either <span class="tag real">measured</span> on real data, <span class="tag calc">calculated</span> by the model, or a <span class="tag guess">guess</span> that I tested higher and lower.</p>
+    <div class="heat-wrap" style="overflow-x:auto">
+    <table class="sources">
+      <thead><tr><th scope="col">Number</th><th scope="col">What it means</th><th scope="col">Where it comes from</th></tr></thead>
+      <tbody>
+        <tr><td>+<span id="srcDbl"></span> late per 100 orders</td><td>When couriers become twice as busy, this many more orders out of 100 arrive late.</td><td><span class="tag real">measured</span> In thousands of real moments (a district, a half-hour), I compared how busy couriers were with the share of late orders: about 11% late when each courier carried about 1 order at a time, 16% at 2, 18.5% at 4 or more. I drew the simplest smooth line through those points; this is its slope.</td></tr>
+        <tr><td><span id="srcFloor"></span> late</td><td>Lateness that never goes away (slow kitchens, traffic), even when couriers are free.</td><td><span class="tag real">measured</span> The lowest late rate in the real data, so the model never predicts less.</td></tr>
+        <tr><td><span id="srcMin"></span> minutes</td><td>How long one order keeps a courier busy, from accepting it to delivering it.</td><td><span class="tag real">measured</span> The average in the real data.</td></tr>
+        <tr><td>Couriers on duty</td><td>How many couriers work at each hour.</td><td><span class="tag real">measured</span> Brussels gets as many couriers, relative to its orders, as the real network had at that hour.</td></tr>
+        <tr><td>Weekly rhythm</td><td>Which days and hours get the most orders.</td><td><span class="tag real">measured</span> Real DoorDash orders (United States): only the shape of the week, not the volume.</td></tr>
+        <tr><td>Residents, restaurants, rain</td><td>Where customers live, where food is picked up, when it rained.</td><td><span class="tag real">measured</span> Statbel 2025, OpenStreetMap, Open-Meteo (September&ndash;October 2026).</td></tr>
+        <tr><td><span id="srcWeekly"></span> orders a week</td><td>The total orders on one app in Brussels.</td><td><span class="tag guess">guess</span> Uber's real volume isn't public.</td></tr>
+        <tr><td><span id="srcSplit"></span></td><td>Where orders are picked up.</td><td><span class="tag guess">guess</span> Pickups happen at restaurants, but busy neighbourhoods also order from local places.</td></tr>
+        <tr><td>+<span id="srcRain"></span> in rain</td><td>Extra orders in a rainy hour, with the same couriers.</td><td><span class="tag guess">guess</span> People order more when it rains.</td></tr>
+        <tr><td><span id="srcNudge"></span> follow</td><td>Couriers who move when nudged (heatmaps, small bonuses).</td><td><span class="tag guess">guess</span> Couriers are independent and free to ignore a nudge.</td></tr>
+        <tr><td>Within <span id="srcRule"></span></td><td>How close the simple rule "spread couriers like the restaurants" gets to the best placement.</td><td><span class="tag calc">calculated</span> The model at Friday 19:00.</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="estimate" style="margin:10px 0 0">I made each guess 30% bigger and 30% smaller: the reduction in late orders over four weeks stayed between <span id="srcRange"></span>, so the conclusion doesn't depend on any one guess being exactly right.</p>
+  </section>
 
   <footer>
     <p><b>How it works, in plain words.</b> Each zone's colour shows how busy its couriers are: on average, how many orders each courier is handling at the same time. Real delivery data shows that when couriers become twice as busy, about <span id="dblTxt"></span> more orders out of every 100 arrive late. "Today" assumes couriers wait where their last delivery ended, which is mostly where people live, while most pickups are at restaurants. The optimiser then moves couriers one at a time, each to the zone where it prevents the most late orders (a professional maths solver gives the same answer). A simple rule, spreading couriers like the restaurants, gets almost the same result (within <span id="ruleTxt"></span>): the value is in correcting the drift every hour.</p>
@@ -313,6 +344,16 @@ $("rainTxt").textContent = "+" + fmt(DATA.defaults.rain_uplift * 100) + "%";
 $("rainReal").textContent = `In Brussels, ${DATA.rain.rainy} of ${DATA.rain.hours} service hours were rainy on 7 Sep–4 Oct 2026.`;
 $("dblTxt").textContent = fmt(DATA.defaults.curve_b * Math.log(2) * 100, 1);
 $("ruleTxt").textContent = DATA.rule_gap_pct;
+const D0 = DATA.defaults;
+$("srcDbl").textContent = fmt(D0.curve_b * Math.log(2) * 100, 1);
+$("srcFloor").textContent = fmt(D0.curve_floor * 100, 1) + "%";
+$("srcMin").textContent = fmt(D0.minutes_with_courier, 0);
+$("srcWeekly").textContent = fmt(D0.weekly_orders);
+$("srcSplit").textContent = fmt(D0.pickup_weight_food * 100) + "% near restaurants, " + fmt((1 - D0.pickup_weight_food) * 100) + "% near homes";
+$("srcRain").textContent = fmt(D0.rain_uplift * 100) + "%";
+$("srcNudge").textContent = fmt(D0.compliance * 100) + "%";
+$("srcRule").textContent = DATA.rule_gap_pct;
+$("srcRange").textContent = DATA.sens_range;
 ["dow", "hour", "rain", "staffing_scale", "compliance", "weekly_orders"].forEach(id => $(id).addEventListener("input", render));
 $("vToday").addEventListener("click", () => { view = "today"; $("vToday").setAttribute("aria-pressed", "true"); $("vOpt").setAttribute("aria-pressed", "false"); render(); });
 $("vOpt").addEventListener("click", () => { view = "optimised"; $("vOpt").setAttribute("aria-pressed", "true"); $("vToday").setAttribute("aria-pressed", "false"); render(); });

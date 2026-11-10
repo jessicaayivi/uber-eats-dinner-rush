@@ -31,6 +31,7 @@ def page_data():
         "defaults": p, "min": MIN_COURIERS_PER_ZONE,
         "rain": {"rainy": int(window.rain.sum()), "hours": len(window)},
         "rule_gap_pct": f"{results['headline']['friday_19_vs_restaurant_rule_pct']}%",
+        "sens_range": "{}% and {}%".format(*results["sensitivity_reduction_range_pct"]),
     }
 
 
