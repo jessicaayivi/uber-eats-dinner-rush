@@ -5,9 +5,16 @@
 -- Late = delivered after the time promised to the customer. Weekly figures = 8-day totals x 7/8.
 -- Stages: dispatch (created -> first offered to a courier), accept (offered -> accepted, incl. refusals),
 --         pickup (accepted -> picked up at the restaurant), last mile (picked up -> delivered).
+--
+-- A note on how I read these queries: is_late, redispatched and slow_merchant are 0/1 flags, so AVG() of a flag
+-- is simply the share of orders where it is true (AVG(is_late) = the late rate). I use that trick a lot below.
 
 -- Q1. District scorecard
 -- name: q1_district
+-- I wanted one row per district with the numbers an ops manager would check first.
+-- SQLite has no PERCENTILE function, so I compute the 90th percentile of delivery time by hand:
+--   1. "ranked" numbers every order inside its district from fastest to slowest (rn) and counts the district (n);
+--   2. "p90" keeps the first delivery time whose rank reaches 90% of the district: 9 in 10 orders are faster.
 WITH ranked AS (
   SELECT da_id, total_min,
          ROW_NUMBER() OVER (PARTITION BY da_id ORDER BY total_min) AS rn,
@@ -17,25 +24,28 @@ WITH ranked AS (
   SELECT da_id, MIN(CASE WHEN rn >= 0.9 * n THEN total_min END) AS p90_minutes FROM ranked GROUP BY da_id
 )
 SELECT o.da_id                                          AS district,
-       CAST(COUNT(*) * 7 / 8 AS INT)                    AS orders_per_week,
+       CAST(COUNT(*) * 7 / 8 AS INT)                    AS orders_per_week,      -- 8 days of data scaled to a 7-day week
        ROUND(100.0 * AVG(o.is_late), 1)                 AS late_pct,
-       ROUND(100.0 * AVG(o.late_min > 5), 1)            AS late_over_5min_pct,
+       ROUND(100.0 * AVG(o.late_min > 5), 1)            AS late_over_5min_pct,   -- the comparison returns 1/0, so AVG = share
        ROUND(AVG(o.promise_min), 1)                     AS avg_promise_min,
        ROUND(AVG(o.total_min), 1)                       AS avg_delivery_min,
        ROUND(p.p90_minutes, 1)                          AS p90_delivery_min,
-       ROUND(100.0 * AVG(o.redispatched), 1)            AS redispatched_pct,
-       ROUND(AVG(o.wave_orders), 2)                     AS avg_run_size_per_order
+       ROUND(100.0 * AVG(o.redispatched), 1)            AS redispatched_pct,     -- refused by a courier at least once
+       ROUND(AVG(o.wave_orders), 2)                     AS avg_run_size_per_order -- how many orders the courier carried in that run
 FROM orders o JOIN p90 p USING (da_id)
 GROUP BY o.da_id
 ORDER BY late_pct DESC;
 
 -- Q2. When it breaks: hour of day, weekdays vs weekend
 -- name: q2_hour
+-- I split weekdays and weekends because Friday-Sunday dinners usually behave differently.
+-- My 8 days (Mon 17 - Mon 24 Oct) contain 6 weekdays and 2 weekend days, so I divide by 6 and by 2
+-- to get orders for one typical day of each kind.
 SELECT hour,
        CAST(SUM(1 - is_weekend) / 6.0 AS INT)                      AS orders_per_weekday,
        CAST(SUM(is_weekend) / 2.0 AS INT)                          AS orders_per_weekend_day,
-       ROUND(100.0 * AVG(CASE WHEN is_weekend = 0 THEN is_late END), 1) AS weekday_late_pct,
-       ROUND(100.0 * AVG(CASE WHEN is_weekend = 1 THEN is_late END), 1) AS weekend_late_pct,
+       ROUND(100.0 * AVG(CASE WHEN is_weekend = 0 THEN is_late END), 1) AS weekday_late_pct,  -- CASE gives NULL on weekends,
+       ROUND(100.0 * AVG(CASE WHEN is_weekend = 1 THEN is_late END), 1) AS weekend_late_pct,  -- and AVG ignores NULLs
        ROUND(AVG(promise_min), 1)                                  AS avg_promise_min,
        ROUND(AVG(t_dispatch), 1)                                   AS avg_dispatch_wait_min,
        ROUND(AVG(wave_orders), 2)                                  AS avg_run_size_per_order
@@ -47,12 +57,16 @@ ORDER BY hour;
 -- Q3. Root cause of each late order: the stage with the largest overrun versus on-time orders
 --     in the same district and hour (and distance band for the two travel stages)
 -- name: q3_root_cause
+-- The hard part happens before this query, in src/prepare_meituan.py: for every late order I compare each stage
+-- (dispatch, accept, pickup, last mile) with the median of ON-TIME orders in the same district and hour, and
+-- for the two travel stages also at a similar distance. The stage that ran longest over normal becomes
+-- root_cause. Here I just count late orders per cause and check when they happen.
 SELECT root_cause,
        COUNT(*)                                                             AS late_orders,
-       ROUND(100.0 * COUNT(*) / (SELECT SUM(is_late) FROM orders), 1)       AS share_of_late_pct,
+       ROUND(100.0 * COUNT(*) / (SELECT SUM(is_late) FROM orders), 1)       AS share_of_late_pct,  -- out of ALL late orders
        ROUND(AVG(late_min), 1)                                              AS avg_minutes_late,
-       ROUND(100.0 * AVG(CASE WHEN hour BETWEEN 10 AND 12 THEN 1.0 ELSE 0 END), 1) AS share_at_lunch_pct,
-       ROUND(100.0 * AVG(CASE WHEN hour BETWEEN 16 AND 19 THEN 1.0 ELSE 0 END), 1) AS share_at_dinner_pct
+       ROUND(100.0 * AVG(CASE WHEN hour BETWEEN 10 AND 12 THEN 1.0 ELSE 0 END), 1) AS share_at_lunch_pct,   -- 10:00-12:59
+       ROUND(100.0 * AVG(CASE WHEN hour BETWEEN 16 AND 19 THEN 1.0 ELSE 0 END), 1) AS share_at_dinner_pct   -- 16:00-19:59
 FROM orders
 WHERE is_late = 1
 GROUP BY root_cause
@@ -60,6 +74,8 @@ ORDER BY late_orders DESC;
 
 -- Q4. Where the extra minutes go: average stage times, late versus on-time orders
 -- name: q4_stages
+-- A simple side-by-side: if late orders spend much longer in one stage, that stage is where the time is lost.
+-- I also show distance and run size, to check the gap isn't only because late orders travel further.
 SELECT CASE is_late WHEN 1 THEN 'late' ELSE 'on time' END AS orders,
        COUNT(*)                          AS n,
        ROUND(AVG(t_dispatch), 1)         AS dispatch_min,
@@ -74,12 +90,17 @@ GROUP BY is_late;
 
 -- Q5. Concentration: share of late orders in the worst district-half-hours (by date)
 -- name: q5_concentration
+-- Question: are late orders spread everywhere, or packed into a few bad moments?
+-- I rank every district-half-hour from most late orders to fewest, then keep running totals as I go down the list
+-- ("ROWS UNBOUNDED PRECEDING" = add up everything from the top of the list down to this row).
+-- Reading the totals at the 5%, 10% and 20% marks tells me what share of all late orders the worst moments hold,
+-- and what share of all orders they represent (so I can see it isn't just because those moments are busy).
 WITH s AS (
   SELECT late, orders,
-         ROW_NUMBER() OVER (ORDER BY late DESC)                          AS rnk,
-         COUNT(*)     OVER ()                                            AS n,
-         SUM(late)    OVER (ORDER BY late DESC ROWS UNBOUNDED PRECEDING) AS cum_late,
-         SUM(orders)  OVER (ORDER BY late DESC ROWS UNBOUNDED PRECEDING) AS cum_orders,
+         ROW_NUMBER() OVER (ORDER BY late DESC)                          AS rnk,          -- 1 = the worst half-hour
+         COUNT(*)     OVER ()                                            AS n,            -- how many half-hours in total
+         SUM(late)    OVER (ORDER BY late DESC ROWS UNBOUNDED PRECEDING) AS cum_late,     -- running total of late orders
+         SUM(orders)  OVER (ORDER BY late DESC ROWS UNBOUNDED PRECEDING) AS cum_orders,   -- running total of all orders
          SUM(late)    OVER ()                                            AS total_late,
          SUM(orders)  OVER ()                                            AS total_orders
   FROM slots_by_date
@@ -91,6 +112,12 @@ FROM s WHERE rnk IN (CAST(n * 0.05 AS INT), CAST(n * 0.10 AS INT), CAST(n * 0.20
 -- Q6. Batching: late rate by orders in the courier's run, raw and like-for-like
 --     (like-for-like compares with single-order runs in the same district and hour)
 -- name: q6_batching
+-- The raw late rate by run size is misleading: big runs mostly happen at busy hours in busy districts,
+-- which are late anyway. So I compare like for like:
+--   1. "cell" = late rate and last-mile time for each district x hour x run size (runs of 6+ grouped as 6);
+--   2. "base" = the same for single-order runs, my reference, kept only where I have at least 20 orders;
+--   3. for each run size I take the gap to that reference in the SAME district and hour, then average the gaps,
+--      weighted by number of orders. The answer: how much later orders get just because the run is bigger.
 WITH cell AS (
   SELECT da_id, hour, MIN(wave_orders, 6) AS run_size, COUNT(*) AS n, AVG(is_late) AS late, AVG(t_lastmile) AS lastmile
   FROM orders GROUP BY da_id, hour, MIN(wave_orders, 6)
@@ -103,13 +130,17 @@ SELECT c.run_size                                           AS orders_in_run,
        ROUND(100.0 * SUM(c.n * (c.late - b.late1)) / SUM(c.n), 1) AS extra_late_pts_like_for_like,
        ROUND(SUM(c.n * c.lastmile) / SUM(c.n), 1)           AS lastmile_min,
        ROUND(SUM(c.n * (c.lastmile - b.lastmile1)) / SUM(c.n), 1) AS extra_lastmile_min_like_for_like
-FROM cell c JOIN base b USING (da_id, hour)
+FROM cell c JOIN base b USING (da_id, hour)   -- inner join: a district-hour without a reliable reference is left out
 GROUP BY c.run_size
 ORDER BY c.run_size;
 
 -- Q7. Merchants: are slow restaurants a separate bottleneck?
 --     Slow = top 10% of merchants (50+ orders) by average pickup overrun.
 -- name: q7_merchants
+-- "Pickup overrun" = how much longer the courier took to collect the food than on-time orders in the same
+-- district, hour and distance. I flagged the worst 10% of restaurants (with enough orders to judge them fairly)
+-- in prepare_meituan.py. If their share of late orders is bigger than their share of orders, they are a
+-- bottleneck of their own, which account managers can work on.
 SELECT CASE slow_merchant WHEN 1 THEN 'slowest 10%' ELSE 'other merchants' END AS merchants,
        COUNT(DISTINCT poi_id)                                   AS merchant_count,
        ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) FROM orders), 1) AS share_of_orders_pct,
@@ -117,12 +148,14 @@ SELECT CASE slow_merchant WHEN 1 THEN 'slowest 10%' ELSE 'other merchants' END A
        ROUND(100.0 * AVG(is_late), 1)                           AS late_pct,
        ROUND(AVG(t_pickup), 1)                                  AS avg_pickup_min,
        ROUND(AVG(over_pickup), 1)                               AS avg_pickup_overrun_min,
-       ROUND(AVG(food_ready_wait), 1)                           AS picked_up_vs_food_ready_min
+       ROUND(AVG(food_ready_wait), 1)                           AS picked_up_vs_food_ready_min  -- pickup time minus the restaurant's own ready estimate
 FROM orders
 GROUP BY slow_merchant;
 
 -- Q8. Courier refusals: what does a re-dispatch cost?
 -- name: q8_refusals
+-- In this data, a refused order gets a new waybill, so "redispatched" = a courier said no at least once.
+-- I compare those orders with the ones accepted first time, and check whether refusals cluster at peak hours.
 SELECT CASE redispatched WHEN 1 THEN 'refused at least once' ELSE 'accepted first time' END AS orders,
        COUNT(*)                                   AS n,
        ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) FROM orders), 1) AS share_pct,
@@ -136,6 +169,14 @@ GROUP BY redispatched;
 -- Q9. Supply pressure: how lateness, dispatch wait and last mile respond to courier load
 --     Load = orders being carried / couriers on a run, per district-half-hour (Little's law)
 -- name: q9_load_response
+-- "Load" is how many orders each busy courier is carrying at the same time, on average. I get it by dividing
+-- the minutes orders spent with couriers by the minutes couriers spent on a run, in each district-half-hour
+-- (Little's law: work in progress = time spent / time available).
+--   1. "s" computes the load and drops tiny half-hours (under 30 courier-minutes or 10 orders), which are too noisy;
+--   2. "b" puts each half-hour into a load band, plus a band number so the bands sort in the right order
+--      (sorting the text labels would put "4+" in the wrong place);
+--   3. then I compare late rate, dispatch wait, last mile and promised time across bands.
+-- This shows a link between load and lateness, not proof that one causes the other: that needs a test.
 WITH s AS (
   SELECT *, order_min / courier_min AS load FROM slots_by_date WHERE courier_min >= 30 AND orders >= 10
 ), b AS (
@@ -148,7 +189,7 @@ WITH s AS (
 SELECT load_band,
        COUNT(*)                                          AS half_hours,
        SUM(orders)                                       AS orders,
-       ROUND(100.0 * SUM(late) / SUM(orders), 1)         AS late_pct,
+       ROUND(100.0 * SUM(late) / SUM(orders), 1)         AS late_pct,          -- weighted by orders, not a plain average of half-hours
        ROUND(SUM(sum_dispatch) / SUM(orders), 1)         AS dispatch_wait_min,
        ROUND(SUM(sum_lastmile) / SUM(orders), 1)         AS lastmile_min,
        ROUND(SUM(sum_promise) / SUM(orders), 1)          AS promise_min
@@ -158,6 +199,9 @@ ORDER BY band_order;
 
 -- Q10. Idle couriers at the lunch peak (24 dispatch snapshots, 11:25-11:30 every day)
 -- name: q10_idle_at_peak
+-- The data includes 24 "photos" of the dispatch system at lunch peak: every courier who could take an order,
+-- and how many orders each was already carrying. "idle" = candidates carrying nothing at that moment.
+-- If many couriers are idle while orders wait, the problem is matching and position, not only headcount.
 SELECT ROUND(AVG(candidates))                         AS candidate_couriers,
        ROUND(AVG(idle))                               AS idle_couriers,
        ROUND(100.0 * SUM(idle) / SUM(candidates), 1)  AS idle_pct,
