@@ -48,6 +48,7 @@ The SQL behind these findings is in [`sql/analysis.sql`](sql/analysis.sql), with
 - **Measure first:** where available couriers really wait, compared with where pickups happen, hour by hour.
 - **Start with free fixes:** help the slowest restaurants (with account managers) and reduce courier refusals.
 - **Then test repositioning** with a randomised switchback test: switch it on and off by city and 2-hour block, while watching courier earnings, cancellations and food quality.
+- **Next steps the map doesn't cover yet:** the app's real restaurant list, targeted courier incentives (couriers earn per order) and recruiting restaurants where people live: Molenbeek has 1 food place per 1,319 residents, against 353 for Brussels ([details](docs/DETAILS.md#next-steps-what-the-map-doesnt-know-yet)).
 
 ## What is real and what is assumed
 

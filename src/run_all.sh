@@ -17,5 +17,6 @@ PY="${PYTHON:-python}"
 "$PY" src/optimiser/grid.py                               # Brussels H3 hexagons and 25 zones
 "$PY" src/optimiser/demand.py                             # simulated orders, real rain hours
 "$PY" src/optimiser/optimise.py                           # optimiser, PuLP cross-check, sensitivity
+"$PY" src/optimiser/restaurant_gap.py                      # residents per food place by zone (recruitment shortlist)
 "$PY" src/optimiser/build_page.py                         # optimiser/index.html
 "$PY" src/optimiser/check_page.py                         # the map's JS optimiser must reproduce optimise.py

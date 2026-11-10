@@ -203,6 +203,25 @@ Each assumption at 50% and 150% of its default, everything else unchanged ([`dat
 
 **What holds:** the free levers always pay, and targeted quests beat the blanket bonus in all 26 cases (at worst €19 vs at best €62 per late delivery avoided). **What doesn't:** the paid levers only pay if a late delivery is worth far more than my default; that is the number to measure first.
 
+## Next steps: what the map doesn't know yet
+
+The map is a first step built on public information. Three things would sharpen it:
+
+1. **Which restaurants are on the app, and how reliable they are.** The map counts every restaurant, fast-food place and café in OpenStreetMap, not only app partners. In the Meituan data, the slowest 10% of merchants have 19% of orders late vs 14% for the rest.
+2. **Couriers earn per order, so they need a reason to move.** Candidate incentives: demand heatmap (free), zone boost where couriers are short, quests, a minimum hourly earning in a target zone, priority on the next order after an outer delivery (free), a pickup on the way back (free). In the lever model, targeted quests cost about €13 per late delivery avoided vs €124 for a blanket peak bonus.
+3. **Recruit restaurants where people live**, so trips get shorter (the last mile causes 55% of late orders). A first shortlist from `src/optimiser/restaurant_gap.py` (residents per food place; Brussels average 353):
+
+| Zone | Residents per food place | Food places missing vs Brussels average |
+|---|---|---|
+| Molenbeek-Saint-Jean | 1,319 | ~235 |
+| Anderlecht | 828 | ~202 |
+| Uccle | 847 | ~130 |
+| Jette | 744 | ~73 |
+| Schaerbeek | 446 | ~73 |
+| Brussels Pentagon (comparison) | 63 | 828 above average |
+
+Molenbeek, Anderlecht and Uccle are also the zones the optimiser takes couriers from. Limits: all food places, not app partners; customers choose a cuisine, not the nearest restaurant; recruitment takes months; the map doesn't model trip distance, so the time saved isn't quantified.
+
 ## Repository (both parts)
 
 ```
@@ -224,6 +243,7 @@ src/optimiser/grid.py         H3 hexagons, residents, food places, 25 zones
 src/optimiser/demand.py       simulated orders with real rain hours
 src/optimiser/model.py        lateness, greedy optimiser, baselines, moves
 src/optimiser/optimise.py     scenarios, PuLP cross-check, 4-week totals, sensitivity -> data/optimiser/results.json
+src/optimiser/restaurant_gap.py  residents per food place by zone (recruitment shortlist) -> data/optimiser/restaurant_gap.csv
 src/optimiser/build_page.py   builds optimiser/index.html
 src/optimiser/check_page.py   checks the map's JS optimiser against optimise.py (also in CI)
 optimiser/index.html          the map, published as the website's home page (and at /optimiser/)
